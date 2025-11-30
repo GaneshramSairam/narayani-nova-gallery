@@ -1,0 +1,769 @@
+import React, { useState } from 'react';
+import { useAdmin } from '../context/AdminContext';
+import { useNavigate } from 'react-router-dom';
+import { generateInvoice } from '../utils/generateInvoice';
+
+const AdminDashboard = () => {
+    const {
+        products, addProduct, updateProduct, deleteProduct,
+        orders, verifyOrder,
+        qrCode, updateQrCode,
+        activityLogs,
+        adminUser, updateAdminCredentials,
+        logout
+    } = useAdmin();
+
+    const [activeTab, setActiveTab] = useState('products');
+    const navigate = useNavigate();
+
+    // Product Form State
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentProduct, setCurrentProduct] = useState(null);
+    const [productForm, setProductForm] = useState({
+        title: '',
+        artist: 'Nova',
+        price: '',
+        category: 'Cyberpunk',
+        description: '',
+        imageUrl: ''
+    });
+
+    // Account Form State
+    const [accountForm, setAccountForm] = useState({
+        email: adminUser.email,
+        password: adminUser.password
+    });
+    const [accountMsg, setAccountMsg] = useState('');
+
+    const handleLogout = () => {
+        logout();
+        navigate('/admin');
+    };
+
+    // --- Product Handlers ---
+    const handleProductSubmit = (e) => {
+        e.preventDefault();
+        if (isEditing && currentProduct) {
+            updateProduct(currentProduct.id, {
+                ...productForm,
+                price: Number(productForm.price)
+            });
+        } else {
+            addProduct({
+                ...productForm,
+                price: Number(productForm.price)
+            });
+        }
+        resetForm();
+    };
+
+    const startEdit = (product) => {
+        setIsEditing(true);
+        setCurrentProduct(product);
+        setProductForm({ ...product });
+    };
+
+    const resetForm = () => {
+        setIsEditing(false);
+        setCurrentProduct(null);
+        setProductForm({
+            title: '',
+            artist: 'Nova',
+            price: '',
+            category: 'Cyberpunk',
+            description: '',
+            imageUrl: ''
+        });
+    };
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProductForm({ ...productForm, imageUrl: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // --- QR Handlers ---
+    const handleQrUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                updateQrCode(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // --- Order Handlers ---
+    const handleVerify = (orderId) => {
+        verifyOrder(orderId);
+    };
+
+    const handleDownloadInvoice = (order) => {
+        generateInvoice(order);
+    };
+
+    // --- Account Handlers ---
+    const handleAccountUpdate = (e) => {
+        e.preventDefault();
+        updateAdminCredentials(accountForm.email, accountForm.password);
+        setAccountMsg('Credentials updated successfully!');
+        setTimeout(() => setAccountMsg(''), 3000);
+    };
+
+    // --- Export Handlers ---
+    const safeCSV = (str) => {
+        // Convert to string, escape double quotes by doubling them, and wrap in quotes
+        return `"${String(str || '').replace(/"/g, '""')}"`;
+    };
+
+    const exportLogsToCSV = () => {
+        const headers = ['Timestamp', 'Action Type', 'User Name', 'User Email', 'Order ID', 'Details'];
+        const rows = activityLogs.map(log => [
+            safeCSV(new Date(log.timestamp).toLocaleString()),
+            safeCSV(log.actionType),
+            safeCSV(log.userName),
+            safeCSV(log.userEmail),
+            safeCSV(log.orderId || '-'),
+            safeCSV(log.details)
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        link.download = `narayanis-nova-activity-log-${dateStr}.csv`;
+        link.click();
+    };
+
+    const exportOrdersToCSV = () => {
+        // Exact header requirement: Order ID,Date,Time,Customer Name,Email,Phone,Address,Items,Total,Status
+        const headers = ['Order ID', 'Date', 'Time', 'Customer Name', 'Email', 'Phone', 'Address', 'Items', 'Total', 'Status'];
+
+        const rows = orders.map(order => {
+            const dateObj = new Date(order.date);
+            // Date: DD-MM-YYYY
+            const dateStr = dateObj.toLocaleDateString('en-GB').replace(/\//g, '-');
+            // Time: hh:mm:ss pm
+            const timeStr = dateObj.toLocaleTimeString('en-US', { hour12: true }).toLowerCase();
+
+            return [
+                safeCSV(order.id),
+                safeCSV(dateStr),
+                safeCSV(timeStr),
+                safeCSV(order.customer.name),
+                safeCSV(order.customer.email),
+                safeCSV(order.customer.phone),
+                safeCSV(order.customer.address),
+                safeCSV(order.items.map(i => `${i.title} (x${i.quantity})`).join(', ')),
+                safeCSV(order.total.toFixed(2)),
+                safeCSV(order.status)
+            ];
+        });
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        link.download = `narayanis-nova-orders-${dateStr}.csv`;
+        link.click();
+    };
+
+    return (
+        <div className="dashboard-container">
+            <header className="dashboard-header">
+                <h1>Super Admin Dashboard</h1>
+                <button onClick={handleLogout} className="logout-btn">Logout</button>
+            </header>
+
+            <div className="dashboard-content">
+                <nav className="sidebar">
+                    <button
+                        className={activeTab === 'products' ? 'active' : ''}
+                        onClick={() => setActiveTab('products')}
+                    >
+                        Product Management
+                    </button>
+                    <button
+                        className={activeTab === 'qr' ? 'active' : ''}
+                        onClick={() => setActiveTab('qr')}
+                    >
+                        UPI QR Management
+                    </button>
+                    <button
+                        className={activeTab === 'orders' ? 'active' : ''}
+                        onClick={() => setActiveTab('orders')}
+                    >
+                        Orders & Verification
+                    </button>
+                    <button
+                        className={activeTab === 'logs' ? 'active' : ''}
+                        onClick={() => setActiveTab('logs')}
+                    >
+                        Activity Logs
+                    </button>
+                    <button
+                        className={activeTab === 'account' ? 'active' : ''}
+                        onClick={() => setActiveTab('account')}
+                    >
+                        Admin Account
+                    </button>
+                </nav>
+
+                <main className="main-panel">
+                    {activeTab === 'products' && (
+                        <div className="products-section">
+                            <h2>{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
+                            <form onSubmit={handleProductSubmit} className="product-form">
+                                <div className="form-row">
+                                    <input
+                                        placeholder="Product Name"
+                                        value={productForm.title}
+                                        onChange={e => setProductForm({ ...productForm, title: e.target.value })}
+                                        required
+                                    />
+                                    <input
+                                        placeholder="Price ($)"
+                                        type="number"
+                                        value={productForm.price}
+                                        onChange={e => setProductForm({ ...productForm, price: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-row">
+                                    <input
+                                        placeholder="Category"
+                                        value={productForm.category}
+                                        onChange={e => setProductForm({ ...productForm, category: e.target.value })}
+                                    />
+                                    <input
+                                        placeholder="Artist"
+                                        value={productForm.artist}
+                                        onChange={e => setProductForm({ ...productForm, artist: e.target.value })}
+                                    />
+                                </div>
+                                <textarea
+                                    placeholder="Description"
+                                    value={productForm.description}
+                                    onChange={e => setProductForm({ ...productForm, description: e.target.value })}
+                                />
+                                <div className="file-input-wrapper">
+                                    <label>Product Image:</label>
+                                    <input type="file" accept="image/*" onChange={handleImageUpload} />
+                                    {productForm.imageUrl && <img src={productForm.imageUrl} alt="Preview" className="img-preview-small" />}
+                                </div>
+                                <div className="form-actions">
+                                    <button type="submit" className="save-btn">{isEditing ? 'Update Product' : 'Add Product'}</button>
+                                    {isEditing && <button type="button" onClick={resetForm} className="cancel-btn">Cancel</button>}
+                                </div>
+                            </form>
+
+                            <div className="products-list">
+                                <h3>Current Products</h3>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(p => (
+                                            <tr key={p.id}>
+                                                <td><img src={p.imageUrl} alt={p.title} className="table-img" /></td>
+                                                <td>{p.title}</td>
+                                                <td>${p.price}</td>
+                                                <td>
+                                                    <button onClick={() => startEdit(p)} className="edit-btn">Edit</button>
+                                                    <button onClick={() => deleteProduct(p.id)} className="delete-btn">Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'qr' && (
+                        <div className="qr-section">
+                            <h2>UPI QR Code Management</h2>
+                            <div className="qr-upload-area">
+                                <div className="current-qr">
+                                    <h3>Current QR Code</h3>
+                                    {qrCode ? (
+                                        <img src={qrCode} alt="Current QR" className="qr-preview" />
+                                    ) : (
+                                        <div className="no-qr">No QR Code Uploaded</div>
+                                    )}
+                                </div>
+                                <div className="upload-controls">
+                                    <label className="upload-btn-label">
+                                        Upload New QR Image
+                                        <input type="file" accept="image/*" onChange={handleQrUpload} hidden />
+                                    </label>
+                                    <p className="help-text">Upload a clear image of your UPI QR code. This will be shown to customers at checkout.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'orders' && (
+                        <div className="orders-section">
+                            <div className="section-header">
+                                <h2>Orders & Verification</h2>
+                                <button onClick={exportOrdersToCSV} className="export-btn">
+                                    Export Orders (Excel)
+                                </button>
+                            </div>
+
+                            {orders.length === 0 ? (
+                                <p className="no-data">No orders yet.</p>
+                            ) : (
+                                <div className="orders-table-wrapper">
+                                    <table className="orders-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Order ID</th>
+                                                <th>Date</th>
+                                                <th>Customer Details</th>
+                                                <th>Address</th>
+                                                <th>Total</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {orders.map(order => (
+                                                <tr key={order.id}>
+                                                    <td>{order.id}</td>
+                                                    <td>{new Date(order.date).toLocaleDateString()}</td>
+                                                    <td>
+                                                        <div className="font-bold">{order.customer.name}</div>
+                                                        <div className="text-sm">{order.customer.email}</div>
+                                                        <div className="text-sm">{order.customer.phone}</div>
+                                                    </td>
+                                                    <td className="address-cell">{order.customer.address}</td>
+                                                    <td>${order.total.toFixed(2)}</td>
+                                                    <td>
+                                                        <span className={`status-badge ${order.status.toLowerCase()}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {order.status === 'Pending' ? (
+                                                            <button
+                                                                onClick={() => handleVerify(order.id)}
+                                                                className="verify-btn"
+                                                            >
+                                                                Verify Payment
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleDownloadInvoice(order)}
+                                                                className="invoice-btn"
+                                                            >
+                                                                Download Invoice
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'logs' && (
+                        <div className="logs-section">
+                            <div className="section-header">
+                                <h2>Activity Logs</h2>
+                                <button onClick={exportLogsToCSV} className="export-btn">
+                                    Export All Activity (Excel)
+                                </button>
+                            </div>
+                            <div className="logs-table-wrapper">
+                                <table className="logs-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Action</th>
+                                            <th>User</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {activityLogs.map(log => (
+                                            <tr key={log.id}>
+                                                <td>{new Date(log.timestamp).toLocaleString()}</td>
+                                                <td><span className="action-badge">{log.actionType}</span></td>
+                                                <td>
+                                                    <div>{log.userName}</div>
+                                                    <div className="text-sm">{log.userEmail}</div>
+                                                </td>
+                                                <td className="details-cell">{log.details}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'account' && (
+                        <div className="account-section">
+                            <h2>Admin Account Settings</h2>
+                            <div className="account-card">
+                                <form onSubmit={handleAccountUpdate}>
+                                    <div className="form-group">
+                                        <label>Admin Email</label>
+                                        <input
+                                            type="email"
+                                            value={accountForm.email}
+                                            onChange={e => setAccountForm({ ...accountForm, email: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>New Password</label>
+                                        <input
+                                            type="text"
+                                            value={accountForm.password}
+                                            onChange={e => setAccountForm({ ...accountForm, password: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <button type="submit" className="save-btn">Update Credentials</button>
+                                    {accountMsg && <p className="success-msg">{accountMsg}</p>}
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </main>
+            </div>
+
+            <style>{`
+        .dashboard-container {
+          min-height: 100vh;
+          background: #f4f4f4;
+          color: #333;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .dashboard-header {
+          background: #1a0b0e;
+          color: #D4AF37;
+          padding: 1rem 2rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .logout-btn {
+          background: transparent;
+          border: 1px solid #D4AF37;
+          color: #D4AF37;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+
+        .dashboard-content {
+          flex: 1;
+          display: flex;
+        }
+
+        .sidebar {
+          width: 250px;
+          background: #2a1215;
+          padding: 2rem 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .sidebar button {
+          background: transparent;
+          border: none;
+          color: #ccc;
+          padding: 1rem 2rem;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.2s;
+          border-left: 4px solid transparent;
+        }
+
+        .sidebar button:hover {
+          background: rgba(212, 175, 55, 0.1);
+          color: #fff;
+        }
+
+        .sidebar button.active {
+          background: rgba(212, 175, 55, 0.2);
+          color: #D4AF37;
+          border-left-color: #D4AF37;
+        }
+
+        .main-panel {
+          flex: 1;
+          padding: 2rem;
+          overflow-y: auto;
+        }
+
+        h2 {
+          color: #1a0b0e;
+          border-bottom: 2px solid #D4AF37;
+          padding-bottom: 0.5rem;
+          margin-bottom: 2rem;
+        }
+
+        /* Forms */
+        .product-form, .account-card {
+          background: #fff;
+          padding: 1.5rem;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          margin-bottom: 2rem;
+          max-width: 600px;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .form-group {
+          margin-bottom: 1rem;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: bold;
+        }
+
+        input, textarea {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+        }
+
+        .file-input-wrapper {
+          margin-bottom: 1rem;
+        }
+
+        .img-preview-small {
+          height: 50px;
+          margin-left: 1rem;
+          vertical-align: middle;
+          border-radius: 4px;
+        }
+
+        .save-btn {
+          background: #28a745;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+
+        .cancel-btn {
+          background: #6c757d;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-left: 1rem;
+        }
+
+        /* Tables */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          background: #fff;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+          padding: 1rem;
+          text-align: left;
+          border-bottom: 1px solid #eee;
+        }
+
+        th {
+          background: #f8f9fa;
+          font-weight: 600;
+        }
+
+        .table-img {
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 4px;
+        }
+
+        .edit-btn {
+          color: #007bff;
+          background: none;
+          border: none;
+          cursor: pointer;
+          margin-right: 0.5rem;
+        }
+
+        .delete-btn {
+          color: #dc3545;
+          background: none;
+          border: none;
+          cursor: pointer;
+        }
+
+        /* QR Section */
+        .qr-section {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .qr-preview {
+          width: 250px;
+          height: 250px;
+          object-fit: contain;
+          border: 2px dashed #ccc;
+          padding: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .upload-btn-label {
+          background: #D4AF37;
+          color: #1a0b0e;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+          display: inline-block;
+        }
+
+        /* Orders */
+        .status-badge {
+          padding: 0.25rem 0.5rem;
+          border-radius: 12px;
+          font-size: 0.85rem;
+          font-weight: bold;
+        }
+
+        .status-badge.pending {
+          background: #ffeeba;
+          color: #856404;
+        }
+
+        .status-badge.verified {
+          background: #d4edda;
+          color: #155724;
+        }
+
+        .verify-btn {
+          background: #007bff;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        }
+
+        .invoice-btn {
+          background: #17a2b8;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        }
+
+        .text-sm {
+          font-size: 0.85rem;
+          color: #666;
+        }
+        
+        .font-bold {
+          font-weight: bold;
+        }
+        
+        .address-cell {
+          max-width: 200px;
+          font-size: 0.9rem;
+        }
+
+        /* Logs & Headers */
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+        }
+
+        .export-btn {
+          background: #28a745;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+
+        .action-badge {
+          background: #e9ecef;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          font-weight: 500;
+        }
+
+        .details-cell {
+          max-width: 300px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .success-msg {
+          color: #28a745;
+          margin-top: 1rem;
+          font-weight: bold;
+        }
+      `}</style>
+        </div>
+    );
+};
+
+export default AdminDashboard;

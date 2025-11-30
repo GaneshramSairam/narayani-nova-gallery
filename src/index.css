@@ -1,0 +1,78 @@
+:root {
+  --font-main: 'Lato', sans-serif;
+  --font-heading: 'Playfair Display', serif;
+
+  /* Luxury Wine & Gold Palette */
+  --color-bg: #4C0B0D;
+  /* Deep Wine (Center) */
+  --color-bg-mid: #3A080A;
+  /* Mid Tone */
+  --color-bg-outer: #260506;
+  /* Outer Edge */
+
+  --color-surface: #3D080A;
+  /* Deeper Wine for cards/filters */
+  --color-surface-hover: #4a1215;
+  /* Slightly lighter for hover */
+
+  --color-gold-highlight: #D4AF37;
+  --color-gold-mid: #C5A028;
+  --color-gold-shadow: #B08D1E;
+  --color-gold-soft: #E5C978;
+  --color-gold-sharp: #E5C661;
+
+  --color-text-title: #F8E6D4;
+  /* Off-white */
+  --color-text-subtitle: #D2B67F;
+  /* Muted Gold */
+  --color-text-body: #E5C978;
+  /* Soft Gold */
+
+  --color-border: #C5A028;
+  /* Gold Border */
+
+  --color-primary: #D4AF37;
+  /* Gold for primary actions */
+  --color-primary-dark: #B08D1E;
+
+  --shadow-luxury: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 15px rgba(212, 175, 55, 0.3);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  /* Increased rounding 16px */
+  --radius-lg: 1.25rem;
+
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Smooth luxury feel */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-bg);
+  background-image: radial-gradient(circle at center, var(--color-bg) 0%, var(--color-bg-mid) 60%, var(--color-bg-outer) 100%);
+  background-attachment: fixed;
+  color: var(--color-text-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
