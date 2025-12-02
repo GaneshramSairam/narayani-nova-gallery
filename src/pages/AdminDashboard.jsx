@@ -11,7 +11,8 @@ const AdminDashboard = () => {
         activityLogs,
         adminUser, updateAdminCredentials,
         logout,
-        categories, addCategory, deleteCategory
+        categories, addCategory, deleteCategory,
+        socialLinks, updateSocialLinks
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('products');
@@ -38,6 +39,16 @@ const AdminDashboard = () => {
 
     // Category Form State
     const [newCategory, setNewCategory] = useState('');
+
+    // Social Form State
+    const [socialForm, setSocialForm] = useState({ whatsapp: '', instagram: '' });
+
+    // Update form when context data loads
+    React.useEffect(() => {
+        if (socialLinks) {
+            setSocialForm(socialLinks);
+        }
+    }, [socialLinks]);
 
     const handleLogout = () => {
         logout();
@@ -241,6 +252,12 @@ const AdminDashboard = () => {
                         onClick={() => setActiveTab('categories')}
                     >
                         Manage Categories
+                    </button>
+                    <button
+                        className={activeTab === 'social' ? 'active' : ''}
+                        onClick={() => setActiveTab('social')}
+                    >
+                        Social Links
                     </button>
                 </nav>
 
@@ -512,6 +529,39 @@ const AdminDashboard = () => {
                                         ))}
                                     </ul>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'social' && (
+                        <div className="social-section">
+                            <h2>Social Media Links</h2>
+                            <div className="account-card">
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    updateSocialLinks(socialForm);
+                                    alert('Social links updated!');
+                                }}>
+                                    <div className="form-group">
+                                        <label>WhatsApp Number (e.g., +919876543210)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="+91..."
+                                            value={socialForm.whatsapp}
+                                            onChange={e => setSocialForm({ ...socialForm, whatsapp: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Instagram URL</label>
+                                        <input
+                                            type="url"
+                                            placeholder="https://instagram.com/..."
+                                            value={socialForm.instagram}
+                                            onChange={e => setSocialForm({ ...socialForm, instagram: e.target.value })}
+                                        />
+                                    </div>
+                                    <button type="submit" className="save-btn">Update Links</button>
+                                </form>
                             </div>
                         </div>
                     )}

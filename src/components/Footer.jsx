@@ -1,14 +1,26 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAdmin } from '../context/AdminContext';
 
 const Footer = ({ onAboutClick }) => {
+  const { socialLinks } = useAdmin();
+  const { whatsapp, instagram } = socialLinks || {};
+
   return (
     <footer className="footer">
       <div className="footer-content">
         <p>&copy; {new Date().getFullYear()} Narayani's Nova Gallery. All rights reserved.</p>
         <div className="social-links">
-          <a href="#">Twitter</a>
-          <a href="#">Instagram</a>
+          {whatsapp && (
+            <a href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+              WhatsApp
+            </a>
+          )}
+          {instagram && (
+            <a href={instagram} target="_blank" rel="noopener noreferrer">
+              Instagram
+            </a>
+          )}
           <button onClick={onAboutClick} className="about-link">About Us</button>
           <Link to="/admin" className="admin-link">Admin Login</Link>
         </div>
