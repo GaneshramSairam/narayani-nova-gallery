@@ -1,11 +1,13 @@
 import React from 'react';
-
-const categories = ["All", "Cyberpunk", "Abstract", "Nature"];
+import { useAdmin } from '../context/AdminContext';
 
 const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
+  const { categories } = useAdmin();
+  const displayCategories = ["All", ...categories.map(c => c.name)];
+
   return (
     <div className="category-filter">
-      {categories.map((category) => (
+      {displayCategories.map((category) => (
         <button
           key={category}
           className={`filter-btn ${activeCategory === category ? 'active' : ''}`}

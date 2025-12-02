@@ -18,11 +18,30 @@ const CartDrawer = () => {
 
   if (!isCartOpen) return null;
 
-  const renderContent = () => {
-    if (view === 'success') {
-      return <PaymentSuccess onClose={() => setIsCartOpen(false)} order={lastOrder} />;
-    }
+  if (view === 'success') {
+    return (
+      <div className="payment-success-overlay">
+        <PaymentSuccess onClose={() => setIsCartOpen(false)} order={lastOrder} />
+        <style>{`
+          .payment-success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a0b0e;
+            z-index: 3000;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
+  const renderContent = () => {
     if (view === 'checkout') {
       return (
         <CheckoutForm

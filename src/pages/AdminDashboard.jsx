@@ -10,7 +10,8 @@ const AdminDashboard = () => {
         qrCode, updateQrCode,
         activityLogs,
         adminUser, updateAdminCredentials,
-        logout
+        logout,
+        categories, addCategory, deleteCategory
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('products');
@@ -34,6 +35,9 @@ const AdminDashboard = () => {
         password: adminUser.password
     });
     const [accountMsg, setAccountMsg] = useState('');
+
+    // Category Form State
+    const [newCategory, setNewCategory] = useState('');
 
     const handleLogout = () => {
         logout();
@@ -108,6 +112,15 @@ const AdminDashboard = () => {
         generateInvoice(order);
     };
 
+    // --- Category Handlers ---
+    const handleAddCategory = (e) => {
+        e.preventDefault();
+        if (newCategory.trim()) {
+            addCategory(newCategory.trim());
+            setNewCategory('');
+        }
+    };
+
     // --- Account Handlers ---
     const handleAccountUpdate = (e) => {
         e.preventDefault();
@@ -151,7 +164,7 @@ const AdminDashboard = () => {
         const headers = ['Order ID', 'Date', 'Time', 'Customer Name', 'Email', 'Phone', 'Address', 'Items', 'Total', 'Status'];
 
         const rows = orders.map(order => {
-            const dateObj = new Date(order.date);
+            const dateObj = new Date(order.date || Date.now());
             // Date: DD-MM-YYYY
             const dateStr = dateObj.toLocaleDateString('en-GB').replace(/\//g, '-');
             // Time: hh:mm:ss pm
@@ -161,13 +174,13 @@ const AdminDashboard = () => {
                 safeCSV(order.id),
                 safeCSV(dateStr),
                 safeCSV(timeStr),
-                safeCSV(order.customer.name),
-                safeCSV(order.customer.email),
-                safeCSV(order.customer.phone),
-                safeCSV(order.customer.address),
-                safeCSV(order.items.map(i => `${i.title} (x${i.quantity})`).join(', ')),
-                safeCSV(order.total.toFixed(2)),
-                safeCSV(order.status)
+                safeCSV(order.customer?.name || 'Unknown'),
+                safeCSV(order.customer?.email || '-'),
+                safeCSV(order.customer?.phone || '-'),
+                safeCSV(order.customer?.address || '-'),
+                safeCSV((order.items || []).map(i => `${i.title} (x${i.quantity})`).join(', ')),
+                safeCSV((order.total || 0).toFixed(2)),
+                safeCSV(order.status || 'Pending')
             ];
         });
 
@@ -223,6 +236,12 @@ const AdminDashboard = () => {
                     >
                         Admin Account
                     </button>
+                    <button
+                        className={activeTab === 'categories' ? 'active' : ''}
+                        onClick={() => setActiveTab('categories')}
+                    >
+                        Manage Categories
+                    </button>
                 </nav>
 
                 <main className="main-panel">
@@ -246,11 +265,16 @@ const AdminDashboard = () => {
                                     />
                                 </div>
                                 <div className="form-row">
-                                    <input
-                                        placeholder="Category"
+                                    <select
                                         value={productForm.category}
                                         onChange={e => setProductForm({ ...productForm, category: e.target.value })}
-                                    />
+                                        required
+                                    >
+                                        <option value="">Select Category</option>
+                                        {categories.map(cat => (
+                                            <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                        ))}
+                                    </select>
                                     <input
                                         placeholder="Artist"
                                         value={productForm.artist}
@@ -354,17 +378,17 @@ const AdminDashboard = () => {
                                             {orders.map(order => (
                                                 <tr key={order.id}>
                                                     <td>{order.id}</td>
-                                                    <td>{new Date(order.date).toLocaleDateString()}</td>
+                                                    <td>{order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</td>
                                                     <td>
-                                                        <div className="font-bold">{order.customer.name}</div>
-                                                        <div className="text-sm">{order.customer.email}</div>
-                                                        <div className="text-sm">{order.customer.phone}</div>
+                                                        <div className="font-bold">{order.customer?.name || 'Unknown'}</div>
+                                                        <div className="text-sm">{order.customer?.email || '-'}</div>
+                                                        <div className="text-sm">{order.customer?.phone || '-'}</div>
                                                     </td>
-                                                    <td className="address-cell">{order.customer.address}</td>
-                                                    <td>${order.total.toFixed(2)}</td>
+                                                    <td className="address-cell">{order.customer?.address || '-'}</td>
+                                                    <td>${(order.total || 0).toFixed(2)}</td>
                                                     <td>
-                                                        <span className={`status-badge ${order.status.toLowerCase()}`}>
-                                                            {order.status}
+                                                        <span className={`status-badge ${(order.status || 'pending').toLowerCase()}`}>
+                                                            {order.status || 'Pending'}
                                                         </span>
                                                     </td>
                                                     <td>
@@ -455,6 +479,39 @@ const AdminDashboard = () => {
                                     <button type="submit" className="save-btn">Update Credentials</button>
                                     {accountMsg && <p className="success-msg">{accountMsg}</p>}
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'categories' && (
+                        <div className="categories-section">
+                            <h2>Manage Categories</h2>
+                            <div className="category-form-card">
+                                <form onSubmit={handleAddCategory} className="add-category-form">
+                                    <input
+                                        placeholder="New Category Name"
+                                        value={newCategory}
+                                        onChange={e => setNewCategory(e.target.value)}
+                                        required
+                                    />
+                                    <button type="submit" className="save-btn">Add Category</button>
+                                </form>
+                            </div>
+
+                            <div className="categories-list">
+                                <h3>Current Categories</h3>
+                                {categories.length === 0 ? (
+                                    <p>No categories found.</p>
+                                ) : (
+                                    <ul className="category-items">
+                                        {categories.map(cat => (
+                                            <li key={cat.id} className="category-item">
+                                                <span>{cat.name}</span>
+                                                <button onClick={() => deleteCategory(cat.id)} className="delete-btn">Delete</button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         </div>
                     )}
@@ -563,7 +620,7 @@ const AdminDashboard = () => {
           font-weight: bold;
         }
 
-        input, textarea {
+        input, textarea, select {
           width: 100%;
           padding: 0.75rem;
           border: 1px solid #ddd;
@@ -760,6 +817,39 @@ const AdminDashboard = () => {
           color: #28a745;
           margin-top: 1rem;
           font-weight: bold;
+        }
+
+        .category-form-card {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            max-width: 500px;
+        }
+
+        .add-category-form {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .add-category-form input {
+            margin-bottom: 0;
+        }
+
+        .category-items {
+            list-style: none;
+            padding: 0;
+            max-width: 500px;
+        }
+
+        .category-item {
+            background: #fff;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
       `}</style>
         </div>
