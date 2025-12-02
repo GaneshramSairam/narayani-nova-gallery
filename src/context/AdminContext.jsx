@@ -10,6 +10,26 @@ export const useAdmin = () => useContext(AdminContext);
 export const AdminProvider = ({ children }) => {
 
 
+    // --- Activity Logging ---
+    const [activityLogs, setActivityLogs] = useState([]);
+
+    useEffect(() => {
+        const logsRef = ref(db, 'activityLogs');
+        const unsubscribe = onValue(logsRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Convert object to array and sort by timestamp desc
+                const logsArray = Object.values(data).sort((a, b) =>
+                    new Date(b.timestamp) - new Date(a.timestamp)
+                );
+                setActivityLogs(logsArray);
+            } else {
+                setActivityLogs([]);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     const logActivity = (actionType, details = '', relatedId = null, userInfo = {}) => {
         const newLog = {
             id: 'LOG-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
