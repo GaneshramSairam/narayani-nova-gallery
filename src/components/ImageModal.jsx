@@ -2,42 +2,42 @@ import React, { useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 
 const ImageModal = ({ artwork, onClose }) => {
-    const { addToCart } = useCart();
+  const { addToCart } = useCart();
 
-    useEffect(() => {
-        const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleEsc);
-        return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
-    if (!artwork) return null;
+  if (!artwork) return null;
 
-    return (
-        <div className="modal-backdrop" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <button className="close-button" onClick={onClose}>&times;</button>
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="close-button" onClick={onClose}>&times;</button>
 
-                <div className="modal-image-container">
-                    <img src={artwork.imageUrl} alt={artwork.title} />
-                </div>
+        <div className="modal-image-container">
+          <img src={artwork.imageUrl} alt={artwork.title} />
+        </div>
 
-                <div className="modal-info">
-                    <h2>{artwork.title}</h2>
-                    <p className="artist">by {artwork.artist}</p>
-                    <p className="description">{artwork.description}</p>
+        <div className="modal-info">
+          <h2>{artwork.title}</h2>
+          <p className="artist">by {artwork.artist}</p>
+          <p className="description">{artwork.description}</p>
 
-                    <div className="modal-actions">
-                        <span className="price">${artwork.price}</span>
-                        <button className="add-btn-large" onClick={() => addToCart(artwork)}>
-                            Add to Cart
-                        </button>
-                    </div>
-                </div>
-            </div>
+          <div className="modal-actions">
+            <span className="price">₹{artwork.price}</span>
+            <button className="add-btn-large" onClick={() => addToCart(artwork)}>
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
 
-            <style>{`
+      <style>{`
         .modal-backdrop {
           position: fixed;
           top: 0;
@@ -192,8 +192,8 @@ const ImageModal = ({ artwork, onClose }) => {
           }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default ImageModal;

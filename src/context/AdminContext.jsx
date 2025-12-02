@@ -164,7 +164,7 @@ export const AdminProvider = ({ children }) => {
 
         logActivity(
             'CHECKOUT_SUBMITTED',
-            `Order placed for $${order.total}`,
+            `Order placed for ₹${order.total}`,
             finalOrder.id,
             order.customer
         );

@@ -21,7 +21,7 @@ const PaymentSuccess = ({ onClose, order }) => {
 
       <div className="order-info">
         <p>Order ID: <strong>{order?.id}</strong></p>
-        <p>Total: <strong>${order?.total.toFixed(2)}</strong></p>
+        <p>Total: <strong>₹{order?.total.toFixed(2)}</strong></p>
       </div>
 
       <button className="close-btn" onClick={onClose}>

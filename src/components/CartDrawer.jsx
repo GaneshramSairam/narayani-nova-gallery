@@ -70,7 +70,7 @@ const CartDrawer = () => {
                 <img src={item.imageUrl} alt={item.title} />
                 <div className="item-details">
                   <h3>{item.title}</h3>
-                  <p className="price">${item.price}</p>
+                  <p className="price">₹{item.price}</p>
                   <div className="quantity-controls">
                     <button onClick={() => updateQuantity(item.id, -1)}>-</button>
                     <span>{item.quantity}</span>
@@ -90,7 +90,7 @@ const CartDrawer = () => {
         <div className="cart-footer">
           <div className="total">
             <span>Total:</span>
-            <span>${cartTotal.toFixed(2)}</span>
+            <span>₹{cartTotal.toFixed(2)}</span>
           </div>
           <button
             className="checkout-btn"

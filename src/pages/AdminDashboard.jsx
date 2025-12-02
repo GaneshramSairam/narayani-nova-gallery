@@ -274,7 +274,7 @@ const AdminDashboard = () => {
                                         required
                                     />
                                     <input
-                                        placeholder="Price ($)"
+                                        placeholder="Price (₹)"
                                         type="number"
                                         value={productForm.price}
                                         onChange={e => setProductForm({ ...productForm, price: e.target.value })}
@@ -330,7 +330,7 @@ const AdminDashboard = () => {
                                             <tr key={p.id}>
                                                 <td><img src={p.imageUrl} alt={p.title} className="table-img" /></td>
                                                 <td>{p.title}</td>
-                                                <td>${p.price}</td>
+                                                <td>₹{p.price}</td>
                                                 <td>
                                                     <button onClick={() => startEdit(p)} className="edit-btn">Edit</button>
                                                     <button onClick={() => deleteProduct(p.id)} className="delete-btn">Delete</button>
@@ -402,7 +402,7 @@ const AdminDashboard = () => {
                                                         <div className="text-sm">{order.customer?.phone || '-'}</div>
                                                     </td>
                                                     <td className="address-cell">{order.customer?.address || '-'}</td>
-                                                    <td>${(order.total || 0).toFixed(2)}</td>
+                                                    <td>₹{(order.total || 0).toFixed(2)}</td>
                                                     <td>
                                                         <span className={`status-badge ${(order.status || 'pending').toLowerCase()}`}>
                                                             {order.status || 'Pending'}

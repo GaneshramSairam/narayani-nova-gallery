@@ -49,7 +49,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
       </div>
 
       <div className="order-summary">
-        <p>Total Amount: <span className="total-price">${cartTotal.toFixed(2)}</span></p>
+        <p>Total Amount: <span className="total-price">₹{cartTotal.toFixed(2)}</span></p>
       </div>
 
       {step === 1 ? (
@@ -113,7 +113,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
 
           <div className="payment-actions">
             <p className="confirm-text">
-              Please scan the QR code above and pay <strong>${cartTotal.toFixed(2)}</strong>.
+              Please scan the QR code above and pay <strong>₹{cartTotal.toFixed(2)}</strong>.
               <br />
               Once completed, click the button below.
             </p>

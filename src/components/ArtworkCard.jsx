@@ -21,7 +21,7 @@ const ArtworkCard = ({ artwork, onClick }) => {
       <div className="card-info">
         <div className="info-header">
           <p className="artwork-description">{artwork.description}</p>
-          <span className="price">${artwork.price}</span>
+          <span className="price">₹{artwork.price}</span>
         </div>
         <button className="add-btn" onClick={handleAddToCart}>
           Add to Cart

@@ -101,8 +101,8 @@ export const generateInvoice = async (order) => {
 
         doc.text(item.title, 25, yPos);
         doc.text(item.quantity.toString(), 130, yPos);
-        doc.text(`$${item.price.toFixed(2)}`, 155, yPos);
-        doc.text(`$${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
+        doc.text(`₹${item.price.toFixed(2)}`, 155, yPos);
+        doc.text(`₹${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
         yPos += 10;
     });
 
@@ -123,7 +123,7 @@ export const generateInvoice = async (order) => {
 
     doc.setFontSize(16);
     doc.setTextColor(212, 175, 55); // Gold
-    doc.text(`$${totalAmount.toFixed(2)}`, 185, yPos, { align: 'right' });
+    doc.text(`₹${totalAmount.toFixed(2)}`, 185, yPos, { align: 'right' });
 
     // 6. Footer (Luxury Band)
     const footerHeight = 30;
