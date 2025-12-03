@@ -17,6 +17,10 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
 
   const handleDetailsSubmit = (e) => {
     e.preventDefault();
+    if (!formData.name || !formData.phone || !formData.address) {
+      alert('Please fill in all required fields (Name, Phone, Address)');
+      return;
+    }
     setStep(2);
   };
 
@@ -53,7 +57,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
       </div>
 
       {step === 1 ? (
-        <form onSubmit={handleDetailsSubmit}>
+        <form onSubmit={handleDetailsSubmit} noValidate>
           <div className="form-group">
             <label>Full Name</label>
             <input
@@ -66,10 +70,9 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label>Email (Optional)</label>
             <input
               type="email"
-              required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="john@example.com"
