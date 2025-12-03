@@ -81,7 +81,8 @@ export const generateInvoice = async (order) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text("ITEM DESCRIPTION", 25, yPos);
-    doc.text("QTY", 130, yPos);
+    doc.text("MRP", 115, yPos);
+    doc.text("DISC", 135, yPos);
     doc.text("PRICE", 155, yPos);
     doc.text("TOTAL", 185, yPos, { align: 'right' });
 
@@ -99,8 +100,12 @@ export const generateInvoice = async (order) => {
             doc.rect(20, yPos - 6, pageWidth - 40, 10, 'F');
         }
 
+        const basePrice = item.basePrice || item.price;
+        const discount = item.discountPercent || 0;
+
         doc.text(item.title, 25, yPos);
-        doc.text(item.quantity.toString(), 130, yPos);
+        doc.text(`₹${basePrice}`, 115, yPos);
+        doc.text(`${discount}%`, 135, yPos);
         doc.text(`₹${item.price.toFixed(2)}`, 155, yPos);
         doc.text(`₹${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
         yPos += 10;
@@ -116,6 +121,18 @@ export const generateInvoice = async (order) => {
     yPos += 15;
 
     // Total Label & Amount
+    // Total Label & Amount
+    const totalMRP = cartItems.reduce((acc, item) => acc + (item.basePrice || item.price) * item.quantity, 0);
+    const totalSavings = totalMRP - totalAmount;
+
+    if (totalSavings > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Total MRP: ₹${totalMRP.toFixed(2)}`, 185, yPos - 10, { align: 'right' });
+        doc.text(`Total Savings: -₹${totalSavings.toFixed(2)}`, 185, yPos - 5, { align: 'right' });
+    }
+
     doc.setFont('times', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(76, 11, 13); // Deep Wine

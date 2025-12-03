@@ -54,6 +54,11 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
 
       <div className="order-summary">
         <p>Total Amount: <span className="total-price">₹{cartTotal.toFixed(2)}</span></p>
+        {cartItems.reduce((acc, item) => acc + ((item.basePrice || item.price) - item.price) * item.quantity, 0) > 0 && (
+          <p className="savings-text">
+            You are saving <span className="savings-amount">₹{cartItems.reduce((acc, item) => acc + ((item.basePrice || item.price) - item.price) * item.quantity, 0).toFixed(2)}</span> on this order!
+          </p>
+        )}
       </div>
 
       {step === 1 ? (

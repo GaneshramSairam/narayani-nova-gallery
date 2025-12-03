@@ -58,16 +58,24 @@ const AdminDashboard = () => {
     // --- Product Handlers ---
     const handleProductSubmit = (e) => {
         e.preventDefault();
+        if (!productForm.title || !productForm.basePrice || !productForm.category) return;
+
+        const basePrice = parseFloat(productForm.basePrice);
+        const discountPercent = parseFloat(productForm.discountPercent) || 0;
+        const finalPrice = Math.round(basePrice * (1 - discountPercent / 100));
+
+        const productData = {
+            ...productForm,
+            basePrice: basePrice,
+            discountPercent: discountPercent,
+            price: finalPrice,
+            id: isEditing && currentProduct ? currentProduct.id : Date.now().toString()
+        };
+
         if (isEditing && currentProduct) {
-            updateProduct(currentProduct.id, {
-                ...productForm,
-                price: Number(productForm.price)
-            });
+            updateProduct(currentProduct.id, productData);
         } else {
-            addProduct({
-                ...productForm,
-                price: Number(productForm.price)
-            });
+            addProduct(productData);
         }
         resetForm();
     };
@@ -75,7 +83,11 @@ const AdminDashboard = () => {
     const startEdit = (product) => {
         setIsEditing(true);
         setCurrentProduct(product);
-        setProductForm({ ...product });
+        setProductForm({
+            ...product,
+            basePrice: product.basePrice || product.price,
+            discountPercent: product.discountPercent || 0
+        });
     };
 
     const resetForm = () => {
@@ -84,6 +96,8 @@ const AdminDashboard = () => {
         setProductForm({
             title: '',
             artist: 'Nova',
+            basePrice: '',
+            discountPercent: '',
             price: '',
             category: 'Cyberpunk',
             description: '',
@@ -189,7 +203,14 @@ const AdminDashboard = () => {
                 safeCSV(order.customer?.email || '-'),
                 safeCSV(order.customer?.phone || '-'),
                 safeCSV(order.customer?.address || '-'),
-                safeCSV((order.items || []).map(i => `${i.title} (x${i.quantity})`).join(', ')),
+                safeCSV((order.items || []).map(i => {
+                    const basePrice = i.basePrice || i.price;
+                    const discount = i.discountPercent || 0;
+                    const details = `${i.title} (x${i.quantity})`;
+                    return discount > 0
+                        ? `${details} [MRP: ${basePrice}, Disc: ${discount}%, Price: ${i.price}]`
+                        : `${details} [Price: ${i.price}]`;
+                }).join('; ')),
                 safeCSV((order.total || 0).toFixed(2)),
                 safeCSV(order.status || 'Pending')
             ];
@@ -274,12 +295,24 @@ const AdminDashboard = () => {
                                         required
                                     />
                                     <input
-                                        placeholder="Price (₹)"
+                                        placeholder="Base Price (₹)"
                                         type="number"
-                                        value={productForm.price}
-                                        onChange={e => setProductForm({ ...productForm, price: e.target.value })}
+                                        value={productForm.basePrice || ''}
+                                        onChange={e => setProductForm({ ...productForm, basePrice: e.target.value })}
                                         required
                                     />
+                                    <input
+                                        placeholder="Discount (%)"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={productForm.discountPercent || ''}
+                                        onChange={e => setProductForm({ ...productForm, discountPercent: e.target.value })}
+                                    />
+                                    <div className="price-preview">
+                                        Selling Price: ₹
+                                        {Math.round((productForm.basePrice || 0) * (1 - (productForm.discountPercent || 0) / 100))}
+                                    </div>
                                 </div>
                                 <div className="form-row">
                                     <select
@@ -330,7 +363,15 @@ const AdminDashboard = () => {
                                             <tr key={p.id}>
                                                 <td><img src={p.imageUrl} alt={p.title} className="table-img" /></td>
                                                 <td>{p.title}</td>
-                                                <td>₹{p.price}</td>
+                                                <td>
+                                                    <div>MRP: ₹{p.basePrice || p.price}</div>
+                                                    {p.discountPercent > 0 && (
+                                                        <div className="discount-info">
+                                                            <span className="badge">{p.discountPercent}% OFF</span>
+                                                            <span className="final-price">₹{p.price}</span>
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td>
                                                     <button onClick={() => startEdit(p)} className="edit-btn">Edit</button>
                                                     <button onClick={() => deleteProduct(p.id)} className="delete-btn">Delete</button>

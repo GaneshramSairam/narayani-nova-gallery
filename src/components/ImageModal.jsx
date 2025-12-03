@@ -29,7 +29,17 @@ const ImageModal = ({ artwork, onClose }) => {
           <p className="description">{artwork.description}</p>
 
           <div className="modal-actions">
-            <span className="price">₹{artwork.price}</span>
+            <div className="modal-price-container">
+              {artwork.discountPercent > 0 ? (
+                <>
+                  <span className="modal-original-price">₹{artwork.basePrice}</span>
+                  <span className="price">₹{artwork.price}</span>
+                  <span className="modal-discount-badge">{artwork.discountPercent}% OFF</span>
+                </>
+              ) : (
+                <span className="price">₹{artwork.price}</span>
+              )}
+            </div>
             <button className="add-btn-large" onClick={() => addToCart(artwork)}>
               Add to Cart
             </button>
@@ -137,10 +147,31 @@ const ImageModal = ({ artwork, onClose }) => {
           margin-top: auto;
         }
 
+        .modal-price-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .modal-original-price {
+            text-decoration: line-through;
+            color: var(--color-text-muted);
+            font-size: 1.2rem;
+        }
+
         .price {
           font-size: 2rem;
           font-weight: 700;
           color: var(--color-primary-glow);
+        }
+
+        .modal-discount-badge {
+            background: #d32f2f;
+            color: white;
+            font-size: 1rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
         }
 
         .add-btn-large {
@@ -189,6 +220,10 @@ const ImageModal = ({ artwork, onClose }) => {
           
           .price {
             text-align: center;
+          }
+          
+          .modal-price-container {
+            justify-content: center;
           }
         }
       `}</style>

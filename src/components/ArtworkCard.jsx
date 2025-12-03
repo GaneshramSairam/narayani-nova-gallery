@@ -21,7 +21,17 @@ const ArtworkCard = ({ artwork, onClick }) => {
       <div className="card-info">
         <div className="info-header">
           <p className="artwork-description">{artwork.description}</p>
-          <span className="price">₹{artwork.price}</span>
+          <div className="price-container">
+            {artwork.discountPercent > 0 ? (
+              <>
+                <span className="original-price">₹{artwork.basePrice}</span>
+                <span className="price">₹{artwork.price}</span>
+                <span className="discount-badge">{artwork.discountPercent}% OFF</span>
+              </>
+            ) : (
+              <span className="price">₹{artwork.price}</span>
+            )}
+          </div>
         </div>
         <button className="add-btn" onClick={handleAddToCart}>
           Add to Cart
@@ -31,10 +41,10 @@ const ArtworkCard = ({ artwork, onClick }) => {
       <style>{`
         .artwork-card {
           background: var(--color-surface);
-          border-radius: 16px; /* 14px-18px requested */
+          border-radius: 16px;
           overflow: hidden;
           transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
-          border: 1px solid rgba(197, 160, 40, 0.3); /* Subtle gold border */
+          border: 1px solid rgba(197, 160, 40, 0.3);
           height: 100%;
           display: flex;
           flex-direction: column;
@@ -47,7 +57,7 @@ const ArtworkCard = ({ artwork, onClick }) => {
           position: absolute;
           top: 0; left: 0; right: 0; bottom: 0;
           border-radius: 16px;
-          box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.1); /* Inner gold highlight */
+          box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.1);
           pointer-events: none;
           z-index: 2;
         }
@@ -61,7 +71,7 @@ const ArtworkCard = ({ artwork, onClick }) => {
         .image-container {
           position: relative;
           width: 100%;
-          padding-top: 75%; /* 4:3 Aspect Ratio */
+          padding-top: 75%;
           overflow: hidden;
         }
 
@@ -133,12 +143,33 @@ const ArtworkCard = ({ artwork, onClick }) => {
           font-weight: 300;
         }
 
+        .price-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
         .price {
           color: var(--color-gold-sharp);
           font-weight: 700;
           font-size: 1.25rem;
-          display: block;
           letter-spacing: 0.05em;
+        }
+
+        .discount-badge {
+            background: #d32f2f;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
         }
 
         .add-btn {

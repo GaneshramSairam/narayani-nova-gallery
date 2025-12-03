@@ -70,7 +70,17 @@ const CartDrawer = () => {
                 <img src={item.imageUrl} alt={item.title} />
                 <div className="item-details">
                   <h3>{item.title}</h3>
-                  <p className="price">₹{item.price}</p>
+                  <div className="cart-item-price">
+                    {item.discountPercent > 0 ? (
+                      <>
+                        <span className="original-price">₹{item.basePrice}</span>
+                        <span className="price">₹{item.price}</span>
+                        <span className="discount-badge-small">{item.discountPercent}% OFF</span>
+                      </>
+                    ) : (
+                      <span className="price">₹{item.price}</span>
+                    )}
+                  </div>
                   <div className="quantity-controls">
                     <button onClick={() => updateQuantity(item.id, -1)}>-</button>
                     <span>{item.quantity}</span>
@@ -266,6 +276,29 @@ const CartDrawer = () => {
           border: 1px solid var(--color-border);
           cursor: not-allowed;
           box-shadow: none;
+        }
+
+        .cart-item-price {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .original-price {
+          text-decoration: line-through;
+          color: var(--color-text-muted);
+          font-size: 0.85rem;
+        }
+
+        .discount-badge-small {
+          background: #d32f2f;
+          color: white;
+          font-size: 0.7rem;
+          padding: 2px 4px;
+          border-radius: 4px;
+          font-weight: bold;
         }
 
         @keyframes slideIn {
