@@ -66,7 +66,7 @@ const ImageModal = ({ artwork, onClose }) => {
           border: 1px solid var(--color-border);
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
           animation: slideUp 0.3s ease;
-          overflow: hidden;
+          overflow-y: auto;
         }
 
         .close-button {
