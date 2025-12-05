@@ -27,7 +27,9 @@ const AdminDashboard = () => {
         price: '',
         category: 'Cyberpunk',
         description: '',
-        imageUrl: ''
+        description: '',
+        imageUrl: '',
+        images: []
     });
 
     // Account Form State
@@ -64,11 +66,18 @@ const AdminDashboard = () => {
         const discountPercent = parseFloat(productForm.discountPercent) || 0;
         const finalPrice = Math.round(basePrice * (1 - discountPercent / 100));
 
+        // Ensure images array is populated
+        const images = productForm.images && productForm.images.length > 0
+            ? productForm.images
+            : (productForm.imageUrl ? [productForm.imageUrl] : []);
+
         const productData = {
             ...productForm,
             basePrice: basePrice,
             discountPercent: discountPercent,
             price: finalPrice,
+            images: images,
+            imageUrl: images[0] || '', // Main image is the first one
             id: isEditing && currentProduct ? currentProduct.id : Date.now().toString()
         };
 
@@ -86,7 +95,8 @@ const AdminDashboard = () => {
         setProductForm({
             ...product,
             basePrice: product.basePrice || product.price,
-            discountPercent: product.discountPercent || 0
+            discountPercent: product.discountPercent || 0,
+            images: product.images || (product.imageUrl ? [product.imageUrl] : [])
         });
     };
 
@@ -101,19 +111,40 @@ const AdminDashboard = () => {
             price: '',
             category: 'Cyberpunk',
             description: '',
-            imageUrl: ''
+            imageUrl: '',
+            images: []
         });
     };
 
     const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProductForm({ ...productForm, imageUrl: reader.result });
-            };
-            reader.readAsDataURL(file);
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setProductForm(prev => {
+                        const newImages = [...(prev.images || []), reader.result];
+                        return {
+                            ...prev,
+                            images: newImages,
+                            imageUrl: prev.imageUrl || newImages[0]
+                        };
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
         }
+    };
+
+    const removeImage = (index) => {
+        setProductForm(prev => {
+            const newImages = prev.images.filter((_, i) => i !== index);
+            return {
+                ...prev,
+                images: newImages,
+                imageUrl: newImages.length > 0 ? newImages[0] : ''
+            };
+        });
     };
 
     // --- QR Handlers ---
@@ -337,9 +368,16 @@ const AdminDashboard = () => {
                                     onChange={e => setProductForm({ ...productForm, description: e.target.value })}
                                 />
                                 <div className="file-input-wrapper">
-                                    <label>Product Image:</label>
-                                    <input type="file" accept="image/*" onChange={handleImageUpload} />
-                                    {productForm.imageUrl && <img src={productForm.imageUrl} alt="Preview" className="img-preview-small" />}
+                                    <label>Product Images (Select multiple):</label>
+                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} />
+                                    <div className="image-previews">
+                                        {(productForm.images || []).map((img, index) => (
+                                            <div key={index} className="preview-item">
+                                                <img src={img} alt={`Preview ${index}`} className="img-preview-small" />
+                                                <button type="button" onClick={() => removeImage(index)} className="remove-img-btn">×</button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div className="form-actions">
                                     <button type="submit" className="save-btn">{isEditing ? 'Update Product' : 'Add Product'}</button>
@@ -724,10 +762,39 @@ const AdminDashboard = () => {
         }
 
         .img-preview-small {
-          height: 50px;
-          margin-left: 1rem;
-          vertical-align: middle;
+          height: 60px;
+          width: 60px;
+          object-fit: cover;
           border-radius: 4px;
+          border: 1px solid #ddd;
+        }
+
+        .image-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preview-item {
+            position: relative;
+        }
+
+        .remove-img-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .save-btn {

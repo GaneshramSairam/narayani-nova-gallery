@@ -1,8 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 const ImageModal = ({ artwork, onClose }) => {
   const { addToCart } = useCart();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [artwork]);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -14,13 +19,45 @@ const ImageModal = ({ artwork, onClose }) => {
 
   if (!artwork) return null;
 
+  const images = artwork.images && artwork.images.length > 0
+    ? artwork.images
+    : (artwork.imageUrl ? [artwork.imageUrl] : []);
+
+  const nextImage = (e) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="close-button" onClick={onClose}>&times;</button>
 
         <div className="modal-image-container">
-          <img src={artwork.imageUrl} alt={artwork.title} />
+          {images.length > 1 && (
+            <button className="nav-btn prev" onClick={prevImage}>&#10094;</button>
+          )}
+          <img src={images[currentIndex]} alt={artwork.title} />
+          {images.length > 1 && (
+            <button className="nav-btn next" onClick={nextImage}>&#10095;</button>
+          )}
+
+          {images.length > 1 && (
+            <div className="carousel-dots">
+              {images.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`dot ${idx === currentIndex ? 'active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="modal-info">
@@ -109,6 +146,51 @@ const ImageModal = ({ artwork, onClose }) => {
           justify-content: center;
           overflow: hidden;
           min-height: 300px;
+          position: relative;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            font-size: 2rem;
+            padding: 1rem;
+            cursor: pointer;
+            z-index: 5;
+            transition: background 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(212, 175, 55, 0.8);
+        }
+
+        .prev { left: 0; }
+        .next { right: 0; }
+
+        .carousel-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 5;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .dot.active {
+            background: #D4AF37;
         }
 
         .modal-image-container img {
