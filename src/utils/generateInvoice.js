@@ -57,20 +57,49 @@ export const generateInvoice = async (order) => {
     doc.text("CURATED JEWELS - STYLED FOR YOU", pageWidth / 2, 50, { align: 'center' });
 
     // 3. Invoice Details Section
+    // 3. Invoice Details Section
     doc.setTextColor(76, 11, 13); // Deep Wine
     doc.setFontSize(18);
     doc.setFont('times', 'bold');
-    doc.text("INVOICE", 20, 85); // Moved down from 70 to 85
+    doc.text("INVOICE", 20, 80);
 
     // Date & ID
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100); // Grey
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 95); // Moved down from 80 to 95
-    doc.text(`Invoice ID: #NOV-${Date.now().toString().slice(-6)}`, 20, 101); // Moved down from 86 to 101
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 88);
+    doc.text(`Invoice ID: #NOV-${Date.now().toString().slice(-6)}`, 20, 94);
+
+    // Bill To Section
+    const customer = order.customer || {};
+    doc.setFontSize(12);
+    doc.setTextColor(76, 11, 13);
+    doc.setFont('times', 'bold');
+    doc.text("BILL TO", 130, 80);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+
+    let billToY = 88;
+    doc.text(customer.name || 'Guest', 130, billToY);
+    billToY += 5;
+
+    if (customer.email) {
+        doc.text(customer.email, 130, billToY);
+        billToY += 5;
+    }
+
+    doc.text(customer.phone || '', 130, billToY);
+    billToY += 5;
+
+    if (customer.address) {
+        const addressLines = doc.splitTextToSize(customer.address, 60);
+        doc.text(addressLines, 130, billToY);
+    }
 
     // 4. Table Design
-    let yPos = 115; // Moved table start down from 100 to 115
+    let yPos = 130; // Moved down to accommodate Bill To
 
     // Table Header Background
     doc.setFillColor(76, 11, 13); // Deep Wine
@@ -104,10 +133,10 @@ export const generateInvoice = async (order) => {
         const discount = item.discountPercent || 0;
 
         doc.text(item.title, 25, yPos);
-        doc.text(`₹${basePrice}`, 115, yPos);
+        doc.text(`Rs. ${basePrice}`, 115, yPos);
         doc.text(`${discount}%`, 135, yPos);
-        doc.text(`₹${item.price.toFixed(2)}`, 155, yPos);
-        doc.text(`₹${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
+        doc.text(`Rs. ${item.price.toFixed(2)}`, 155, yPos);
+        doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
         yPos += 10;
     });
 
@@ -121,7 +150,6 @@ export const generateInvoice = async (order) => {
     yPos += 15;
 
     // Total Label & Amount
-    // Total Label & Amount
     const totalMRP = cartItems.reduce((acc, item) => acc + (item.basePrice || item.price) * item.quantity, 0);
     const totalSavings = totalMRP - totalAmount;
 
@@ -129,8 +157,8 @@ export const generateInvoice = async (order) => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Total MRP: ₹${totalMRP.toFixed(2)}`, 185, yPos - 10, { align: 'right' });
-        doc.text(`Total Savings: -₹${totalSavings.toFixed(2)}`, 185, yPos - 5, { align: 'right' });
+        doc.text(`Total MRP: Rs. ${totalMRP.toFixed(2)}`, 185, yPos - 10, { align: 'right' });
+        doc.text(`Total Savings: -Rs. ${totalSavings.toFixed(2)}`, 185, yPos - 5, { align: 'right' });
     }
 
     doc.setFont('times', 'bold');
@@ -140,7 +168,7 @@ export const generateInvoice = async (order) => {
 
     doc.setFontSize(16);
     doc.setTextColor(212, 175, 55); // Gold
-    doc.text(`₹${totalAmount.toFixed(2)}`, 185, yPos, { align: 'right' });
+    doc.text(`Rs. ${totalAmount.toFixed(2)}`, 185, yPos, { align: 'right' });
 
     // 6. Footer (Luxury Band)
     const footerHeight = 30;
