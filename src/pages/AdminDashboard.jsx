@@ -27,7 +27,6 @@ const AdminDashboard = () => {
         price: '',
         category: 'Cyberpunk',
         description: '',
-        description: '',
         imageUrl: '',
         images: []
     });
