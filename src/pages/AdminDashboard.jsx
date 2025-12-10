@@ -148,38 +148,48 @@ const AdminDashboard = () => {
         if (files.length === 0) return;
 
         setUploading(true);
-        setUploadProgress(`0/${files.length}`);
         const uploadedUrls = [];
 
         try {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 let fileToUpload = file;
-                console.log(`[Upload Debug] Processing file ${i + 1}/${files.length}: ${file.name} (${file.size} bytes)`);
 
-                // 1. Compress
+                // Show explicit status
+                setUploadProgress(`Processing ${i + 1}/${files.length}: Compressing...`);
+                console.log(`[Upload ${i + 1}] Starting processing for ${file.name}`);
+
+                // 1. Compress with Timeout
                 try {
-                    // Only compress if it's an image and larger than 500KB
                     if (file.type.startsWith('image/') && file.size > 500 * 1024) {
-                        console.log('[Upload Debug] Compressing...');
-                        const compressedBlob = await compressImage(file);
-                        fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' });
-                        console.log(`[Upload Debug] Compression done. New size: ${fileToUpload.size} bytes`);
+                        // Create a race between compression and a 3-second timeout
+                        const compressionPromise = compressImage(file);
+                        const timeoutPromise = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("Timeout")), 3000)
+                        );
+
+                        try {
+                            const compressedBlob = await Promise.race([compressionPromise, timeoutPromise]);
+                            fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' });
+                            console.log(`[Upload ${i + 1}] Compression successful.`);
+                        } catch (timeoutErr) {
+                            console.warn(`[Upload ${i + 1}] Compression timed out or failed. Uploading original.`, timeoutErr);
+                        }
                     }
                 } catch (err) {
-                    console.warn("[Upload Debug] Compression failed, using original file:", err);
+                    console.warn(`[Upload ${i + 1}] Compression skipped:`, err);
                 }
 
                 // 2. Upload
-                console.log('[Upload Debug] Starting upload...');
-                const fileRef = storageRef(storage, `products/${Date.now()}-${fileToUpload.name}`);
+                setUploadProgress(`Processing ${i + 1}/${files.length}: Uploading...`);
+                console.log(`[Upload ${i + 1}] uploading to Firebase...`);
+
+                const fileRef = storageRef(storage, `products/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`);
                 await uploadBytes(fileRef, fileToUpload);
                 const url = await getDownloadURL(fileRef);
                 uploadedUrls.push(url);
-                console.log('[Upload Debug] Upload complete:', url);
 
-                // Update Progress Deterministically
-                setUploadProgress(`${i + 1}/${files.length}`);
+                console.log(`[Upload ${i + 1}] Finished. URL:`, url);
             }
 
             setProductForm(prev => {
@@ -190,15 +200,14 @@ const AdminDashboard = () => {
                     imageUrl: prev.imageUrl || newImages[0]
                 };
             });
-            console.log('[Upload Debug] All files processed successfully.');
 
         } catch (error) {
-            console.error("Error uploading images:", error);
-            alert("Failed to upload images. Check console for details.");
+            console.error("Critical Error uploading images:", error);
+            alert("Upload failed. Please try again or use smaller images.");
         } finally {
             setUploading(false);
             setUploadProgress('');
-            e.target.value = null; // Allow selecting same files again if needed
+            e.target.value = null;
         }
     };
 
