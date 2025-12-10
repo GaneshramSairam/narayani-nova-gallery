@@ -432,38 +432,42 @@ const AdminDashboard = () => {
                                 />
 
                                 <div className="url-input-wrapper" style={{ marginTop: '1rem', marginBottom: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>OR Add Image via URL (Google Drive etc.)</label>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Paste image link here..."
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>OR Add Image via URL (One per line)</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <textarea
+                                            placeholder="Paste image links here (one per line)..."
                                             id="imageUrlInput"
-                                            style={{ flex: 1, padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                                            rows="3"
+                                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical' }}
                                         />
                                         <button
                                             type="button"
                                             className="save-btn"
-                                            style={{ margin: 0, whiteSpace: 'nowrap' }}
+                                            style={{ alignSelf: 'flex-start' }}
                                             onClick={() => {
                                                 const input = document.getElementById('imageUrlInput');
-                                                const url = input.value.trim();
-                                                if (!url) return;
+                                                const rawValue = input.value.trim();
+                                                if (!rawValue) return;
 
-                                                // Google Drive Link Converter
-                                                let finalUrl = url;
-                                                if (url.includes('drive.google.com')) {
-                                                    try {
-                                                        const idMatch = url.match(/[-\w]{25,}/);
-                                                        if (idMatch) {
-                                                            finalUrl = `https://drive.google.com/uc?export=view&id=${idMatch[0]}`;
+                                                const urls = rawValue.split(/[\n,]+/).map(u => u.trim()).filter(u => u);
+
+                                                const processedUrls = urls.map(url => {
+                                                    // Google Drive Link Converter
+                                                    if (url.includes('drive.google.com')) {
+                                                        try {
+                                                            const idMatch = url.match(/[-\w]{25,}/);
+                                                            if (idMatch) {
+                                                                return `https://drive.google.com/uc?export=view&id=${idMatch[0]}`;
+                                                            }
+                                                        } catch (e) {
+                                                            console.warn('Failed to convert Drive link:', url);
                                                         }
-                                                    } catch (e) {
-                                                        console.warn('Failed to convert Drive link');
                                                     }
-                                                }
+                                                    return url;
+                                                });
 
                                                 setProductForm(prev => {
-                                                    const newImages = [...(prev.images || []), finalUrl];
+                                                    const newImages = [...(prev.images || []), ...processedUrls];
                                                     return {
                                                         ...prev,
                                                         images: newImages,
@@ -473,7 +477,7 @@ const AdminDashboard = () => {
                                                 input.value = '';
                                             }}
                                         >
-                                            Add URL
+                                            Add URLs
                                         </button>
                                     </div>
                                     <p className="text-sm" style={{ color: '#666', marginTop: '0.5rem' }}>
