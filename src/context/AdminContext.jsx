@@ -297,7 +297,6 @@ export const AdminProvider = ({ children }) => {
             addCategory,
             deleteCategory,
             socialLinks,
-            socialLinks,
             updateSocialLinks,
             invoiceSettings,
             updateInvoiceSettings
