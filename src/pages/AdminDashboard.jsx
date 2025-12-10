@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { storage } from '../firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -20,11 +20,6 @@ const AdminDashboard = () => {
 
     const [activeTab, setActiveTab] = useState('products');
     const navigate = useNavigate();
-
-    console.log("AdminDashboard rendering. Active Tab:", activeTab);
-    console.log("Invoice Settings:", invoiceSettings);
-    console.log("Products:", products);
-    console.log("Orders:", orders);
 
     // Product Form State
     const [isEditing, setIsEditing] = useState(false);
