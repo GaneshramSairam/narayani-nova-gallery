@@ -62,7 +62,7 @@ const ImageModal = ({ artwork, onClose }) => {
 
         <div className="modal-info">
           <h2>{artwork.title}</h2>
-          <p className="artist">by {artwork.artist}</p>
+          <p className="artist">{artwork.artist}</p>
           <p className="description">{artwork.description}</p>
 
           <div className="modal-actions">

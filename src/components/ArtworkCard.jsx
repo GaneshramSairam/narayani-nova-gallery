@@ -15,7 +15,7 @@ const ArtworkCard = ({ artwork, onClick }) => {
         <img src={artwork.imageUrl} alt={artwork.title} loading="lazy" />
         <div className="overlay">
           <h3 className="artwork-title">{artwork.title}</h3>
-          <p className="artwork-artist">by {artwork.artist}</p>
+          <p className="artwork-artist">{artwork.artist}</p>
         </div>
       </div>
       <div className="card-info">

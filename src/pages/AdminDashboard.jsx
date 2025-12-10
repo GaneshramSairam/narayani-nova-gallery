@@ -25,7 +25,7 @@ const AdminDashboard = () => {
     const [currentProduct, setCurrentProduct] = useState(null);
     const [productForm, setProductForm] = useState({
         title: '',
-        artist: 'Nova',
+        artist: '',
         price: '',
         category: 'Cyberpunk',
         description: '',
@@ -107,7 +107,7 @@ const AdminDashboard = () => {
         setCurrentProduct(null);
         setProductForm({
             title: '',
-            artist: 'Nova',
+            artist: '',
             basePrice: '',
             discountPercent: '',
             price: '',
@@ -369,7 +369,7 @@ const AdminDashboard = () => {
                                         ))}
                                     </select>
                                     <input
-                                        placeholder="Artist"
+                                        placeholder="Product Code"
                                         value={productForm.artist}
                                         onChange={e => setProductForm({ ...productForm, artist: e.target.value })}
                                     />
