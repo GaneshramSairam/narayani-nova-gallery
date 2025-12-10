@@ -11,6 +11,7 @@ import { CartProvider, useCart } from './context/CartContext';
 import { AdminProvider, useAdmin } from './context/AdminContext';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import ErrorBoundary from './components/ErrorBoundary';
 import logo from './assets/Naranis Nova updated complete logo.png';
 
 const CartIcon = () => {
@@ -261,11 +262,28 @@ function StoreLayout() {
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAdmin();
-  if (!isAuthenticated) {
-    return <Navigate to="/admin" replace />;
+  console.log("ProtectedRoute: Rendering");
+  try {
+    const adminParams = useAdmin();
+    console.log("ProtectedRoute: useAdmin result", adminParams);
+    const { isAuthenticated } = adminParams || {};
+
+    console.log("ProtectedRoute: isAuthenticated", isAuthenticated);
+
+    if (isAuthenticated === undefined) {
+      console.error("ProtectedRoute: isAuthenticated is undefined! Context might be missing.");
+      return <div style={{ color: 'red', padding: '2rem' }}>Error: Auth Context Missing</div>;
+    }
+
+    if (!isAuthenticated) {
+      console.log("ProtectedRoute: Not authenticated, redirecting...");
+      return <Navigate to="/admin" replace />;
+    }
+    return children;
+  } catch (e) {
+    console.error("ProtectedRoute: Crashed", e);
+    return <div style={{ color: 'red', padding: '2rem' }}>Critical Error in Route: {e.message}</div>;
   }
-  return children;
 };
 
 function App() {
@@ -279,9 +297,11 @@ function App() {
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
+                <ErrorBoundary>
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               }
             />
           </Routes>

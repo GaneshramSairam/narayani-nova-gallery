@@ -21,6 +21,11 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('products');
     const navigate = useNavigate();
 
+    console.log("AdminDashboard rendering. Active Tab:", activeTab);
+    console.log("Invoice Settings:", invoiceSettings);
+    console.log("Products:", products);
+    console.log("Orders:", orders);
+
     // Product Form State
     const [isEditing, setIsEditing] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
