@@ -252,6 +252,29 @@ export const AdminProvider = ({ children }) => {
         logActivity('SOCIAL_UPDATED', 'Updated social media links');
     };
 
+    // --- Invoice Settings State ---
+    const [invoiceSettings, setInvoiceSettings] = useState({
+        address: '123 Gallery St, Art City, AC 54321',
+        email: 'support@novagallery.com',
+        website: 'www.novagallery.com'
+    });
+
+    useEffect(() => {
+        const invoiceRef = ref(db, 'invoiceSettings');
+        const unsubscribe = onValue(invoiceRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                setInvoiceSettings(data);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const updateInvoiceSettings = (settings) => {
+        set(ref(db, 'invoiceSettings'), settings);
+        logActivity('INVOICE_SETTINGS_UPDATED', 'Updated invoice details');
+    };
+
     return (
         <AdminContext.Provider value={{
             isAuthenticated,
@@ -274,7 +297,10 @@ export const AdminProvider = ({ children }) => {
             addCategory,
             deleteCategory,
             socialLinks,
-            updateSocialLinks
+            socialLinks,
+            updateSocialLinks,
+            invoiceSettings,
+            updateInvoiceSettings
         }}>
             {children}
         </AdminContext.Provider>

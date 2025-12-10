@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import logo from '../assets/Naranis Nova updated complete logo.png';
 
-export const generateInvoice = async (order) => {
+export const generateInvoice = async (order, invoiceSettings = {}) => {
     const { items: cartItems, total: totalAmount } = order;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -183,12 +183,18 @@ export const generateInvoice = async (order) => {
     doc.setFont('helvetica', 'normal');
 
     const centerX = pageWidth / 2;
-    doc.text("123 Gallery St, Art City, AC 54321  |  support@novagallery.com  |  www.novagallery.com", centerX, footerY + 12, { align: 'center' });
+    const address = invoiceSettings.address || "123 Gallery St, Art City, AC 54321";
+    const email = invoiceSettings.email || "support@novagallery.com";
+    const website = invoiceSettings.website || "www.novagallery.com";
+
+    doc.text(`${address}  |  ${email}  |  ${website}`, centerX, footerY + 12, { align: 'center' });
     doc.text("Thank you for being part of the Nova Family", centerX, footerY + 22, { align: 'center' });
 
     // Save PDF
     try {
-        doc.save(`Narayani_Invoice_${Date.now()}.pdf`);
+        const timestamp = Date.now();
+        const safeId = (order.id || `NOV-${timestamp}`).replace(/[^a-zA-Z0-9-_]/g, '');
+        doc.save(`Nova_Gallery_${safeId}.pdf`);
     } catch (error) {
         console.error("Error generating invoice:", error);
         alert("There was an error generating your invoice. Please try again.");

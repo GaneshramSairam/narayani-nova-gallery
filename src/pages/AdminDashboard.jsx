@@ -14,7 +14,8 @@ const AdminDashboard = () => {
         adminUser, updateAdminCredentials,
         logout,
         categories, addCategory, deleteCategory,
-        socialLinks, updateSocialLinks
+        socialLinks, updateSocialLinks,
+        invoiceSettings, updateInvoiceSettings
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('products');
@@ -53,6 +54,25 @@ const AdminDashboard = () => {
             setSocialForm(socialLinks);
         }
     }, [socialLinks]);
+
+    // Invoice Form State
+    const [invoiceForm, setInvoiceForm] = useState({
+        address: '',
+        email: '',
+        website: ''
+    });
+
+    useEffect(() => {
+        if (invoiceSettings) {
+            setInvoiceForm(invoiceSettings);
+        }
+    }, [invoiceSettings]);
+
+    const handleInvoiceSettingsUpdate = (e) => {
+        e.preventDefault();
+        updateInvoiceSettings(invoiceForm);
+        alert('Invoice settings updated successfully!');
+    };
 
     const handleLogout = () => {
         logout();
@@ -177,7 +197,7 @@ const AdminDashboard = () => {
     };
 
     const handleDownloadInvoice = (order) => {
-        generateInvoice(order);
+        generateInvoice(order, invoiceSettings);
     };
 
     // --- Category Handlers ---
@@ -285,43 +305,31 @@ const AdminDashboard = () => {
                         className={activeTab === 'products' ? 'active' : ''}
                         onClick={() => setActiveTab('products')}
                     >
-                        Product Management
-                    </button>
-                    <button
-                        className={activeTab === 'qr' ? 'active' : ''}
-                        onClick={() => setActiveTab('qr')}
-                    >
-                        UPI QR Management
+                        Products
                     </button>
                     <button
                         className={activeTab === 'orders' ? 'active' : ''}
                         onClick={() => setActiveTab('orders')}
                     >
-                        Orders & Verification
-                    </button>
-                    <button
-                        className={activeTab === 'logs' ? 'active' : ''}
-                        onClick={() => setActiveTab('logs')}
-                    >
-                        Activity Logs
-                    </button>
-                    <button
-                        className={activeTab === 'account' ? 'active' : ''}
-                        onClick={() => setActiveTab('account')}
-                    >
-                        Admin Account
+                        Orders
                     </button>
                     <button
                         className={activeTab === 'categories' ? 'active' : ''}
                         onClick={() => setActiveTab('categories')}
                     >
-                        Manage Categories
+                        Categories
                     </button>
                     <button
-                        className={activeTab === 'social' ? 'active' : ''}
-                        onClick={() => setActiveTab('social')}
+                        className={activeTab === 'logs' ? 'active' : ''}
+                        onClick={() => setActiveTab('logs')}
                     >
-                        Social Links
+                        Logs
+                    </button>
+                    <button
+                        className={activeTab === 'account' ? 'active' : ''}
+                        onClick={() => setActiveTab('account')}
+                    >
+                        Settings
                     </button>
                 </nav>
 
@@ -564,8 +572,77 @@ const AdminDashboard = () => {
 
                     {activeTab === 'account' && (
                         <div className="account-section">
-                            <h2>Admin Account Settings</h2>
+                            <h2>Settings & Configuration</h2>
+
+                            {/* Invoice Settings */}
+                            <div className="account-card" style={{ marginBottom: '2rem' }}>
+                                <h3>Invoice Details</h3>
+                                <p className="text-sm" style={{ marginBottom: '1rem' }}>These details will appear on the generated PDF invoices.</p>
+                                <form onSubmit={handleInvoiceSettingsUpdate}>
+                                    <div className="form-group">
+                                        <label>Store Address</label>
+                                        <input
+                                            type="text"
+                                            value={invoiceForm.address || ''}
+                                            onChange={e => setInvoiceForm({ ...invoiceForm, address: e.target.value })}
+                                            placeholder="123 Gallery St, Art City..."
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Support Email</label>
+                                        <input
+                                            type="email"
+                                            value={invoiceForm.email || ''}
+                                            onChange={e => setInvoiceForm({ ...invoiceForm, email: e.target.value })}
+                                            placeholder="support@novagallery.com"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Website URL</label>
+                                        <input
+                                            type="text"
+                                            value={invoiceForm.website || ''}
+                                            onChange={e => setInvoiceForm({ ...invoiceForm, website: e.target.value })}
+                                            placeholder="www.novagallery.com"
+                                        />
+                                    </div>
+                                    <button type="submit" className="save-btn">Save Invoice Details</button>
+                                </form>
+                            </div>
+
+                            {/* Social Links */}
+                            <div className="account-card" style={{ marginBottom: '2rem' }}>
+                                <h3>Social Media Links</h3>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    updateSocialLinks(socialForm);
+                                    alert('Social links updated!');
+                                }}>
+                                    <div className="form-group">
+                                        <label>WhatsApp Number</label>
+                                        <input
+                                            type="text"
+                                            value={socialForm.whatsapp}
+                                            onChange={e => setSocialForm({ ...socialForm, whatsapp: e.target.value })}
+                                            placeholder="+91..."
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Instagram URL</label>
+                                        <input
+                                            type="text"
+                                            value={socialForm.instagram}
+                                            onChange={e => setSocialForm({ ...socialForm, instagram: e.target.value })}
+                                            placeholder="https://instagram.com/..."
+                                        />
+                                    </div>
+                                    <button type="submit" className="save-btn">Update Social Links</button>
+                                </form>
+                            </div>
+
+                            {/* Admin Credentials */}
                             <div className="account-card">
+                                <h3>Admin Credentials</h3>
                                 <form onSubmit={handleAccountUpdate}>
                                     <div className="form-group">
                                         <label>Admin Email</label>
@@ -585,7 +662,7 @@ const AdminDashboard = () => {
                                             required
                                         />
                                     </div>
-                                    <button type="submit" className="save-btn">Update Credentials</button>
+                                    <button type="submit" className="save-btn" style={{ background: '#dc3545' }}>Update Credentials</button>
                                     {accountMsg && <p className="success-msg">{accountMsg}</p>}
                                 </form>
                             </div>
@@ -1023,7 +1100,7 @@ const AdminDashboard = () => {
             align-items: center;
         }
       `}</style>
-        </div>
+        </div >
     );
 };
 
