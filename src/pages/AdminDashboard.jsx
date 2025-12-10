@@ -430,6 +430,57 @@ const AdminDashboard = () => {
                                     value={productForm.description}
                                     onChange={e => setProductForm({ ...productForm, description: e.target.value })}
                                 />
+
+                                <div className="url-input-wrapper" style={{ marginTop: '1rem', marginBottom: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>OR Add Image via URL (Google Drive etc.)</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Paste image link here..."
+                                            id="imageUrlInput"
+                                            style={{ flex: 1, padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="save-btn"
+                                            style={{ margin: 0, whiteSpace: 'nowrap' }}
+                                            onClick={() => {
+                                                const input = document.getElementById('imageUrlInput');
+                                                const url = input.value.trim();
+                                                if (!url) return;
+
+                                                // Google Drive Link Converter
+                                                let finalUrl = url;
+                                                if (url.includes('drive.google.com')) {
+                                                    try {
+                                                        const idMatch = url.match(/[-\w]{25,}/);
+                                                        if (idMatch) {
+                                                            finalUrl = `https://drive.google.com/uc?export=view&id=${idMatch[0]}`;
+                                                        }
+                                                    } catch (e) {
+                                                        console.warn('Failed to convert Drive link');
+                                                    }
+                                                }
+
+                                                setProductForm(prev => {
+                                                    const newImages = [...(prev.images || []), finalUrl];
+                                                    return {
+                                                        ...prev,
+                                                        images: newImages,
+                                                        imageUrl: prev.imageUrl || newImages[0]
+                                                    };
+                                                });
+                                                input.value = '';
+                                            }}
+                                        >
+                                            Add URL
+                                        </button>
+                                    </div>
+                                    <p className="text-sm" style={{ color: '#666', marginTop: '0.5rem' }}>
+                                        Note: For Google Drive, ensure the file access is set to <strong>"Anyone with the link"</strong>.
+                                    </p>
+                                </div>
+
                                 <div className="file-input-wrapper">
                                     <label>Product Images (Select multiple):</label>
                                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
