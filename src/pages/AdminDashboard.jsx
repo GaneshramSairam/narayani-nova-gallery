@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
+import { storage } from '../firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 import { generateInvoice } from '../utils/generateInvoice';
 
@@ -30,6 +32,7 @@ const AdminDashboard = () => {
         imageUrl: '',
         images: []
     });
+    const [uploading, setUploading] = useState(false);
 
     // Account Form State
     const [accountForm, setAccountForm] = useState({
@@ -115,23 +118,33 @@ const AdminDashboard = () => {
         });
     };
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length > 0) {
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setProductForm(prev => {
-                        const newImages = [...(prev.images || []), reader.result];
-                        return {
-                            ...prev,
-                            images: newImages,
-                            imageUrl: prev.imageUrl || newImages[0]
-                        };
-                    });
-                };
-                reader.readAsDataURL(file);
-            });
+            setUploading(true);
+            try {
+                const uploadPromises = files.map(async (file) => {
+                    const fileRef = storageRef(storage, `products/${Date.now()}-${file.name}`);
+                    await uploadBytes(fileRef, file);
+                    return getDownloadURL(fileRef);
+                });
+
+                const urls = await Promise.all(uploadPromises);
+
+                setProductForm(prev => {
+                    const newImages = [...(prev.images || []), ...urls];
+                    return {
+                        ...prev,
+                        images: newImages,
+                        imageUrl: prev.imageUrl || newImages[0]
+                    };
+                });
+            } catch (error) {
+                console.error("Error uploading images:", error);
+                alert("Failed to upload images. Please check your connection or storage quota.");
+            } finally {
+                setUploading(false);
+            }
         }
     };
 
@@ -368,7 +381,8 @@ const AdminDashboard = () => {
                                 />
                                 <div className="file-input-wrapper">
                                     <label>Product Images (Select multiple):</label>
-                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} />
+                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
+                                    {uploading && <p className="loading-text">Uploading images...</p>}
                                     <div className="image-previews">
                                         {(productForm.images || []).map((img, index) => (
                                             <div key={index} className="preview-item">
