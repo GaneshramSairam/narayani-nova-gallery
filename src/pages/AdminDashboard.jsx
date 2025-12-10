@@ -145,59 +145,60 @@ const AdminDashboard = () => {
 
     const handleImageUpload = async (e) => {
         const files = Array.from(e.target.files);
-        if (files.length > 0) {
-            setUploading(true);
-            setUploadProgress(`0/${files.length}`);
+        if (files.length === 0) return;
 
-            try {
-                const uploadPromises = files.map(async (file, index) => {
-                    // 1. Compress
-                    let fileToUpload = file;
-                    try {
-                        // Only compress if it's an image and larger than 500KB
-                        if (file.type.startsWith('image/') && file.size > 500 * 1024) {
-                            const compressedBlob = await compressImage(file);
-                            // Keep original name but ensure .jpg extension if converted
-                            fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' });
-                        }
-                    } catch (err) {
-                        console.warn("Compression failed, using original file:", err);
+        setUploading(true);
+        setUploadProgress(`0/${files.length}`);
+        const uploadedUrls = [];
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                let fileToUpload = file;
+                console.log(`[Upload Debug] Processing file ${i + 1}/${files.length}: ${file.name} (${file.size} bytes)`);
+
+                // 1. Compress
+                try {
+                    // Only compress if it's an image and larger than 500KB
+                    if (file.type.startsWith('image/') && file.size > 500 * 1024) {
+                        console.log('[Upload Debug] Compressing...');
+                        const compressedBlob = await compressImage(file);
+                        fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' });
+                        console.log(`[Upload Debug] Compression done. New size: ${fileToUpload.size} bytes`);
                     }
+                } catch (err) {
+                    console.warn("[Upload Debug] Compression failed, using original file:", err);
+                }
 
-                    // 2. Upload
-                    const fileRef = storageRef(storage, `products/${Date.now()}-${fileToUpload.name}`);
-                    await uploadBytes(fileRef, fileToUpload);
-                    const url = await getDownloadURL(fileRef);
+                // 2. Upload
+                console.log('[Upload Debug] Starting upload...');
+                const fileRef = storageRef(storage, `products/${Date.now()}-${fileToUpload.name}`);
+                await uploadBytes(fileRef, fileToUpload);
+                const url = await getDownloadURL(fileRef);
+                uploadedUrls.push(url);
+                console.log('[Upload Debug] Upload complete:', url);
 
-                    // Update debug/progress locally if needed, but setState inside loop can be jittery.
-                    // Instead, we trust Promise.all to finish. 
-                    // To show real-time "N/Total", we can't easily sync React state in a tight loop without re-renders.
-                    // But we can trigger it:
-                    setUploadProgress(prev => {
-                        const [curr, total] = prev.split('/').map(Number);
-                        return `${curr + 1}/${total}`;
-                    });
-
-                    return url;
-                });
-
-                const urls = await Promise.all(uploadPromises);
-
-                setProductForm(prev => {
-                    const newImages = [...(prev.images || []), ...urls];
-                    return {
-                        ...prev,
-                        images: newImages,
-                        imageUrl: prev.imageUrl || newImages[0]
-                    };
-                });
-            } catch (error) {
-                console.error("Error uploading images:", error);
-                alert("Failed to upload images. Check console for details.");
-            } finally {
-                setUploading(false);
-                setUploadProgress('');
+                // Update Progress Deterministically
+                setUploadProgress(`${i + 1}/${files.length}`);
             }
+
+            setProductForm(prev => {
+                const newImages = [...(prev.images || []), ...uploadedUrls];
+                return {
+                    ...prev,
+                    images: newImages,
+                    imageUrl: prev.imageUrl || newImages[0]
+                };
+            });
+            console.log('[Upload Debug] All files processed successfully.');
+
+        } catch (error) {
+            console.error("Error uploading images:", error);
+            alert("Failed to upload images. Check console for details.");
+        } finally {
+            setUploading(false);
+            setUploadProgress('');
+            e.target.value = null; // Allow selecting same files again if needed
         }
     };
 
