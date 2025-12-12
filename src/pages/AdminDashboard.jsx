@@ -457,8 +457,8 @@ const AdminDashboard = () => {
                                                         try {
                                                             const idMatch = url.match(/[-\w]{25,}/);
                                                             if (idMatch) {
-                                                                // Use the thumbnail endpoint with large size (sz=w1000) for better reliability than uc?export=view
-                                                                return `https://drive.google.com/thumbnail?id=${idMatch[0]}&sz=w1000`;
+                                                                // Use the lh3.googleusercontent.com endpoint for best reliability
+                                                                return `https://lh3.googleusercontent.com/d/${idMatch[0]}=w1000`;
                                                             }
                                                         } catch (e) {
                                                             console.warn('Failed to convert Drive link:', url);
