@@ -110,9 +110,10 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text("ITEM DESCRIPTION", 25, yPos);
-    doc.text("MRP", 105, yPos);
-    doc.text("DISC", 125, yPos);
-    doc.text("PRICE", 145, yPos);
+    doc.text("QTY", 95, yPos);
+    doc.text("MRP", 115, yPos);
+    doc.text("DISC", 135, yPos);
+    doc.text("PRICE", 155, yPos);
     doc.text("TOTAL", 185, yPos, { align: 'right' });
 
     yPos += 15;
@@ -133,9 +134,10 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         const discount = item.discountPercent || 0;
 
         doc.text(item.title, 25, yPos);
-        doc.text(`Rs. ${basePrice}`, 105, yPos);
-        doc.text(`${discount}%`, 125, yPos);
-        doc.text(`Rs. ${item.price.toFixed(2)}`, 145, yPos);
+        doc.text(String(item.quantity), 97, yPos, { align: 'center' });
+        doc.text(`Rs. ${basePrice}`, 115, yPos);
+        doc.text(`${discount}%`, 135, yPos);
+        doc.text(`Rs. ${item.price.toFixed(2)}`, 155, yPos);
         doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
         yPos += 10;
     });
