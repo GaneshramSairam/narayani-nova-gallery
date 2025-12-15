@@ -110,11 +110,11 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text("ITEM DESCRIPTION", 25, yPos);
-    doc.text("QTY", 90, yPos);
-    doc.text("MRP", 105, yPos);
-    doc.text("DISC", 125, yPos);
-    doc.text("PRICE", 145, yPos);
-    doc.text("TOTAL", 185, yPos, { align: 'right' });
+    doc.text("QTY", 95, yPos, { align: 'center' });
+    doc.text("MRP", 112, yPos);
+    doc.text("DISC", 134, yPos);
+    doc.text("PRICE", 156, yPos);
+    doc.text("TOTAL", 188, yPos, { align: 'right' });
 
     yPos += 15;
 
@@ -134,11 +134,11 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         const discount = item.discountPercent || 0;
 
         doc.text(item.title, 25, yPos);
-        doc.text(String(item.quantity), 92, yPos, { align: 'center' });
-        doc.text(`Rs. ${basePrice}`, 105, yPos);
-        doc.text(`${discount}%`, 125, yPos);
-        doc.text(`Rs. ${item.price.toFixed(2)}`, 145, yPos);
-        doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
+        doc.text(String(item.quantity), 95, yPos, { align: 'center' });
+        doc.text(`Rs. ${basePrice}`, 112, yPos);
+        doc.text(`${discount}%`, 134, yPos);
+        doc.text(`Rs. ${item.price.toFixed(2)}`, 156, yPos);
+        doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 188, yPos, { align: 'right' });
         yPos += 10;
     });
 
@@ -159,8 +159,8 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Total MRP: Rs. ${totalMRP.toFixed(2)}`, 185, yPos - 10, { align: 'right' });
-        doc.text(`Total Savings: -Rs. ${totalSavings.toFixed(2)}`, 185, yPos - 5, { align: 'right' });
+        doc.text(`Total MRP: Rs. ${totalMRP.toFixed(2)}`, 188, yPos - 10, { align: 'right' });
+        doc.text(`Total Savings: -Rs. ${totalSavings.toFixed(2)}`, 188, yPos - 5, { align: 'right' });
     }
 
     doc.setFont('times', 'bold');
@@ -170,7 +170,7 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
 
     doc.setFontSize(16);
     doc.setTextColor(212, 175, 55); // Gold
-    doc.text(`Rs. ${totalAmount.toFixed(2)}`, 185, yPos, { align: 'right' });
+    doc.text(`Rs. ${totalAmount.toFixed(2)}`, 188, yPos, { align: 'right' });
 
     // 6. Footer (Luxury Band)
     const footerHeight = 30;
