@@ -111,10 +111,10 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setFontSize(10);
     doc.text("ITEM DESCRIPTION", 25, yPos);
     doc.text("QTY", 95, yPos, { align: 'center' });
-    doc.text("MRP", 120, yPos, { align: 'right' });
-    doc.text("DISC", 140, yPos, { align: 'right' });
-    doc.text("PRICE", 160, yPos, { align: 'right' });
-    doc.text("TOTAL", 185, yPos, { align: 'right' });
+    doc.text("MRP", 117.5, yPos, { align: 'right' });
+    doc.text("DISC", 136, yPos, { align: 'right' });
+    doc.text("PRICE", 157.3, yPos, { align: 'right' });
+    doc.text("TOTAL", 183, yPos, { align: 'right' });
 
     yPos += 15;
 
@@ -141,8 +141,8 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         doc.text(splitTitle, 25, yPos);
 
         doc.text(String(item.quantity), 95, yPos, { align: 'center' });
-        doc.text(`Rs. ${basePrice}`, 120, yPos, { align: 'right' });
-        doc.text(`${discount}%`, 140, yPos, { align: 'right' });
+        doc.text(`Rs. ${basePrice}`, 119.3, yPos, { align: 'right' });
+        doc.text(`${discount}%`, 135, yPos, { align: 'right' });
         doc.text(`Rs. ${item.price.toFixed(2)}`, 160, yPos, { align: 'right' });
         doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
 
