@@ -268,11 +268,16 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+import IntroReveal from './components/IntroReveal';
+
 function App() {
+  const [showIntro, setShowIntro] = useState(true);
+
   return (
     <Router>
       <AdminProvider>
         <CartProvider>
+          {showIntro && <IntroReveal onComplete={() => setShowIntro(false)} />}
           <Routes>
             <Route path="/" element={<StoreLayout />} />
             <Route path="/admin" element={<AdminLogin />} />
