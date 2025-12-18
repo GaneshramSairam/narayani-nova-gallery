@@ -16,7 +16,9 @@ const AdminDashboard = () => {
         logout,
         categories, addCategory, deleteCategory,
         socialLinks, updateSocialLinks,
-        invoiceSettings, updateInvoiceSettings
+        invoiceSettings, updateInvoiceSettings,
+        messages,
+        contactSettings, updateContactSettings
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('products');
@@ -374,6 +376,12 @@ const AdminDashboard = () => {
                     >
                         Settings
                     </button>
+                    <button
+                        className={activeTab === 'messages' ? 'active' : ''}
+                        onClick={() => setActiveTab('messages')}
+                    >
+                        Messages
+                    </button>
                 </nav>
 
                 <main className="main-panel">
@@ -673,6 +681,43 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
+                    {activeTab === 'messages' && (
+                        <div className="messages-section">
+                            <div className="section-header">
+                                <h2>Customer Messages</h2>
+                            </div>
+                            {messages.length === 0 ? (
+                                <p className="no-data">No messages found.</p>
+                            ) : (
+                                <div className="logs-table-wrapper">
+                                    <table className="logs-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Name</th>
+                                                <th>Contact</th>
+                                                <th>Message</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {messages.map((msg, index) => (
+                                                <tr key={msg.id || index}>
+                                                    <td>{new Date(msg.timestamp).toLocaleString()}</td>
+                                                    <td>{msg.name}</td>
+                                                    <td>
+                                                        <div>{msg.email}</div>
+                                                        <div className="text-sm">{msg.phone}</div>
+                                                    </td>
+                                                    <td className="details-cell">{msg.message}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === 'account' && (
                         <div className="account-section">
                             <h2>Settings & Configuration</h2>
@@ -740,6 +785,69 @@ const AdminDashboard = () => {
                                         />
                                     </div>
                                     <button type="submit" className="save-btn">Update Social Links</button>
+                                </form>
+                            </div>
+
+                            {/* Contact Page Settings */}
+                            <div className="account-card" style={{ marginBottom: '2rem' }}>
+                                <h3>Contact Page Details</h3>
+                                <p className="text-sm" style={{ marginBottom: '1rem' }}>Edit the "Get in Touch" section on the contact page.</p>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const formData = new FormData(e.target);
+                                    updateContactSettings({
+                                        subtitle: formData.get('subtitle'),
+                                        email: formData.get('email'),
+                                        phone: formData.get('phone'),
+                                        address: formData.get('address'),
+                                        mapSrc: formData.get('mapSrc')
+                                    });
+                                    alert('Contact page details updated!');
+                                }}>
+                                    <div className="form-group">
+                                        <label>Subtitle Text</label>
+                                        <input
+                                            name="subtitle"
+                                            defaultValue={contactSettings?.subtitle || ''}
+                                            placeholder="Book a styling session..."
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Map Embed URL (iframe src)</label>
+                                        <input
+                                            name="mapSrc"
+                                            defaultValue={contactSettings?.mapSrc || ''}
+                                            placeholder="https://maps.google.com/..."
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Email Address</label>
+                                        <input
+                                            name="email"
+                                            type="email"
+                                            defaultValue={contactSettings?.email || ''}
+                                            placeholder="contact@example.com"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Phone Number</label>
+                                        <input
+                                            name="phone"
+                                            defaultValue={contactSettings?.phone || ''}
+                                            placeholder="+91..."
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Studio Address</label>
+                                        <textarea
+                                            name="address"
+                                            defaultValue={contactSettings?.address || ''}
+                                            placeholder="Full address..."
+                                            rows="3"
+                                            style={{ width: '100%', padding: '0.75rem', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px' }}
+                                        />
+                                    </div>
+                                    <button type="submit" className="save-btn">Update Contact Details</button>
                                 </form>
                             </div>
 

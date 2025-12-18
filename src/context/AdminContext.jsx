@@ -275,6 +275,50 @@ export const AdminProvider = ({ children }) => {
         logActivity('INVOICE_SETTINGS_UPDATED', 'Updated invoice details');
     };
 
+    // --- Contact Page Settings ---
+    const [contactSettings, setContactSettings] = useState({
+        subtitle: 'Book a styling session or ask us about a specific piece.',
+        email: 'hello@narayanisnova.com',
+        phone: '+91-98765-43210',
+        address: 'Parsn Karthik Apts, Vadapalani, Chennai - 600026',
+        mapSrc: 'https://maps.google.com/maps?q=Parsn%20Karthik%20Apartments%2C%20Vadapalani%2C%20Chennai&t=&z=15&ie=UTF8&iwloc=&output=embed'
+    });
+
+    useEffect(() => {
+        const contactRef = ref(db, 'contactSettings');
+        const unsubscribe = onValue(contactRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                setContactSettings(data);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const updateContactSettings = (settings) => {
+        set(ref(db, 'contactSettings'), settings);
+        logActivity('CONTACT_SETTINGS_UPDATED', 'Updated contact page details');
+    };
+
+    // --- Messages State ---
+    const [messages, setMessages] = useState([]);
+
+    useEffect(() => {
+        const messagesRef = ref(db, 'messages');
+        const unsubscribe = onValue(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const msgsArray = Object.values(data).sort((a, b) =>
+                    new Date(b.timestamp) - new Date(a.timestamp)
+                );
+                setMessages(msgsArray);
+            } else {
+                setMessages([]);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     return (
         <AdminContext.Provider value={{
             isAuthenticated,
@@ -299,7 +343,10 @@ export const AdminProvider = ({ children }) => {
             socialLinks,
             updateSocialLinks,
             invoiceSettings,
-            updateInvoiceSettings
+            updateInvoiceSettings,
+            contactSettings,
+            updateContactSettings,
+            messages
         }}>
             {children}
         </AdminContext.Provider>

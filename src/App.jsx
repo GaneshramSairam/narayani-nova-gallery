@@ -5,6 +5,7 @@ import ImageModal from './components/ImageModal';
 import SearchBar from './components/SearchBar';
 import CategoryFilter from './components/CategoryFilter';
 import Footer from './components/Footer';
+import Contact from './components/Contact';
 import CartDrawer from './components/CartDrawer';
 import AboutModal from './components/AboutModal';
 import { CartProvider, useCart } from './context/CartContext';
@@ -131,6 +132,7 @@ function StoreLayout() {
         </main>
       </div>
 
+      <Contact />
       <Footer onAboutClick={() => setIsAboutOpen(true)} />
 
       <ImageModal
