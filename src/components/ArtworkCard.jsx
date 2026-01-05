@@ -1,8 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 const ArtworkCard = ({ artwork, onClick }) => {
   const { addToCart } = useCart();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Derive images list, consistent with ImageModal logic
+  const images = artwork.images && artwork.images.length > 0
+    ? artwork.images
+    : (artwork.imageUrl ? [artwork.imageUrl] : []);
+
+  const currentImage = images[currentIndex] || artwork.imageUrl;
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -10,9 +29,43 @@ const ArtworkCard = ({ artwork, onClick }) => {
   };
 
   return (
-    <div className="artwork-card" onClick={() => onClick(artwork)}>
+    <div
+      className="artwork-card"
+      onClick={() => onClick(artwork)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="image-container">
-        <img src={artwork.imageUrl} alt={artwork.title} loading="lazy" />
+        <img src={currentImage} alt={artwork.title} loading="lazy" />
+
+        {/* Carousel Navigation Arrows */}
+        {images.length > 1 && (
+          <>
+            <button
+              className={`carousel-nav prev ${isHovered ? 'visible' : ''}`}
+              onClick={handlePrev}
+            >
+              &#10094;
+            </button>
+            <button
+              className={`carousel-nav next ${isHovered ? 'visible' : ''}`}
+              onClick={handleNext}
+            >
+              &#10095;
+            </button>
+
+            {/* Dots Indicator */}
+            <div className={`carousel-dots ${isHovered ? 'visible' : ''}`}>
+              {images.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`dot ${idx === currentIndex ? 'active' : ''}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         <div className="overlay">
           <h3 className="artwork-title">{artwork.title}</h3>
           <p className="artwork-artist">{artwork.artist}</p>
@@ -82,11 +135,80 @@ const ArtworkCard = ({ artwork, onClick }) => {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transition: transform 0.5s ease;
+          transition: opacity 0.3s ease; /* changed from transform to opacity for smoother switch, transform conflicts with hover zoom if not careful */
+        }
+        
+        /* Retain zoom on hover for the image itself */
+        .artwork-card:hover .image-container img {
+           transform: scale(1.05); /* Restore zoom */
+           transition: transform 0.5s ease;
         }
 
-        .artwork-card:hover .image-container img {
-          transform: scale(1.05);
+        /* Carousel Navigation */
+        .carousel-nav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(0, 0, 0, 0.6);
+          color: var(--color-gold-highlight);
+          border: none;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 10;
+          opacity: 0;
+          transition: opacity 0.3s, background 0.3s;
+          font-size: 1rem;
+        }
+
+        .carousel-nav.visible {
+          opacity: 1;
+        }
+
+        .carousel-nav:hover {
+          background: var(--color-gold-mid);
+          color: #000;
+        }
+
+        .carousel-nav.prev {
+          left: 10px;
+        }
+
+        .carousel-nav.next {
+          right: 10px;
+        }
+        
+        .carousel-dots {
+            position: absolute;
+            bottom: 40px; /* Above overlay */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .carousel-dots.visible {
+            opacity: 1;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .dot.active {
+            background: var(--color-gold-highlight);
+            transform: scale(1.2);
         }
 
         .overlay {
@@ -101,6 +223,7 @@ const ArtworkCard = ({ artwork, onClick }) => {
           display: flex;
           flex-direction: column;
           justify-content: flex-end;
+          z-index: 5; /* Ensure under nav buttons */
         }
 
         .artwork-card:hover .overlay {
