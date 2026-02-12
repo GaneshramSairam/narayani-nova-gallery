@@ -75,6 +75,8 @@ const CartIcon = () => {
   );
 };
 
+import PromoBar from './components/PromoBar';
+
 function StoreLayout() {
   const [selectedArtwork, setSelectedArtwork] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,21 +84,41 @@ function StoreLayout() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const { products } = useAdmin();
 
+  // Sort products by newest first
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (Number(a.id) > 1000000000000 ? Number(a.id) : 0);
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (Number(b.id) > 1000000000000 ? Number(b.id) : 0);
+      return timeB - timeA;
+    });
+  }, [products]);
+
+  // Get top 4/8 as New Arrivals
+  const newArrivals = useMemo(() => sortedProducts.slice(0, 4), [sortedProducts]);
+
   const filteredArtworks = useMemo(() => {
-    return products.filter((artwork) => {
+    return sortedProducts.filter((artwork) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         artwork.title.toLowerCase().includes(term) ||
         artwork.artist.toLowerCase().includes(term) ||
         artwork.category.toLowerCase().includes(term) ||
         artwork.description.toLowerCase().includes(term);
-      const matchesCategory = activeCategory === 'All' || artwork.category === activeCategory;
+
+      let matchesCategory = true;
+      if (activeCategory === 'New Arrivals') {
+        matchesCategory = artwork.isNewArrival === true;
+      } else if (activeCategory !== 'All') {
+        matchesCategory = artwork.category === activeCategory;
+      }
+
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, activeCategory, products]);
+  }, [searchTerm, activeCategory, sortedProducts]);
 
   return (
     <div className="app-container">
+      <PromoBar />
       <CartIcon />
       <CartDrawer />
 
@@ -120,15 +142,57 @@ function StoreLayout() {
         </header>
 
         <main style={{ padding: '2rem' }}>
-          <GalleryGrid
-            artworks={filteredArtworks}
-            onArtworkClick={setSelectedArtwork}
-          />
-          {filteredArtworks.length === 0 && (
-            <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: '2rem' }}>
-              No artworks found matching your criteria.
+          {/* New Arrivals Section - Only visible on main view */}
+          {activeCategory === 'All' && searchTerm === '' && newArrivals.length > 0 && (
+            <section className="mb-12">
+              <div className="section-header-styled">
+                <h2 className="section-title">Fresh Drops</h2>
+                <div className="title-underline"></div>
+              </div>
+              <GalleryGrid
+                artworks={newArrivals}
+                onArtworkClick={setSelectedArtwork}
+              />
+              <div className="spacer"></div>
+            </section>
+          )}
+
+          {/* Manual New Arrivals Banner */}
+          {activeCategory === 'New Arrivals' && (
+            <div className="new-arrivals-banner">
+              <h2 className="new-arrivals-title">NEW ARRIVALS</h2>
+              <div className="new-arrivals-underline"></div>
             </div>
           )}
+
+          {/* Main Gallery */}
+          <section>
+            {(activeCategory !== 'All' && activeCategory !== 'New Arrivals' || searchTerm !== '') && (
+              <div className="section-header-styled">
+                <h2 className="section-title">
+                  {activeCategory !== 'All' && activeCategory !== 'New Arrivals' ? `${activeCategory} Collection` : 'Search Results'}
+                </h2>
+              </div>
+            )}
+
+            {/* Show 'All Collection' header only if we are showing New Arrivals too, to distinguish */}
+            {activeCategory === 'All' && searchTerm === '' && newArrivals.length > 0 && (
+              <div className="section-header-styled">
+                <h2 className="section-title">All Collection</h2>
+                <div className="title-underline"></div>
+              </div>
+            )}
+
+            <GalleryGrid
+              artworks={filteredArtworks}
+              onArtworkClick={setSelectedArtwork}
+            />
+            {filteredArtworks.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: '2rem' }}>
+                No artworks found matching your criteria.
+              </div>
+            )}
+          </section>
         </main>
       </div>
 
@@ -163,12 +227,6 @@ function StoreLayout() {
           gap: 1.5rem;
           max-width: 800px;
           margin: 0 auto;
-        }
-
-        .logo-container {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 1rem;
         }
 
         .logo-container {
@@ -256,6 +314,65 @@ function StoreLayout() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-5px); }
         }
+
+        /* Section Styling */
+        .section-header-styled {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .section-title {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            color: var(--color-gold-highlight);
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .title-underline {
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--color-gold-mid), transparent);
+            margin: 0 auto;
+        }
+
+        .spacer {
+            height: 3rem;
+            width: 100%;
+        }
+        
+        .mb-12 {
+            margin-bottom: 3rem;
+        }
+
+        /* New Arrivals Banner */
+        .new-arrivals-banner {
+          /* Border and Admin-like box removed as per request */
+          padding: 1rem 0;
+          margin: 0 auto 2rem auto;
+          text-align: center;
+          position: relative;
+        }
+
+        .new-arrivals-title {
+          font-family: 'Times New Roman', serif; /* Or custom serif font */
+          font-size: 2.5rem;
+          color: var(--color-gold-highlight);
+          margin: 0;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+
+        .new-arrivals-underline {
+          width: 50px;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, var(--color-gold-mid), transparent);
+          margin: 0.5rem auto 0;
+        }
+        
       `}</style>
     </div>
   );

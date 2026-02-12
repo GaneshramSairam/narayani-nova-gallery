@@ -36,6 +36,10 @@ const AdminDashboard = () => {
         category: 'Cyberpunk',
         description: '',
         imageUrl: '',
+        categoryId: 'cat1', // Default category ID if needed
+        isNewArrival: false,
+        keywords: '',
+        stock: 1,
         images: []
     });
     const [uploading, setUploading] = useState(false);
@@ -101,12 +105,14 @@ const AdminDashboard = () => {
 
         const productData = {
             ...productForm,
+            isNewArrival: productForm.isNewArrival,
             basePrice: basePrice,
             discountPercent: discountPercent,
             price: finalPrice,
             images: images,
             imageUrl: images[0] || '', // Main image is the first one
-            id: isEditing && currentProduct ? currentProduct.id : Date.now().toString()
+            id: isEditing && currentProduct ? currentProduct.id : Date.now().toString(),
+            createdAt: isEditing && currentProduct ? (currentProduct.createdAt || new Date().toISOString()) : new Date().toISOString()
         };
 
         if (isEditing && currentProduct) {
@@ -124,7 +130,8 @@ const AdminDashboard = () => {
             ...product,
             basePrice: product.basePrice || product.price,
             discountPercent: product.discountPercent || 0,
-            images: product.images || (product.imageUrl ? [product.imageUrl] : [])
+            images: product.images || (product.imageUrl ? [product.imageUrl] : []),
+            isNewArrival: product.isNewArrival || false
         });
     };
 
@@ -138,6 +145,7 @@ const AdminDashboard = () => {
             discountPercent: '',
             price: '',
             category: 'Cyberpunk',
+            isNewArrival: false,
             description: '',
             imageUrl: '',
             images: []
@@ -432,6 +440,17 @@ const AdminDashboard = () => {
                                         value={productForm.artist}
                                         onChange={e => setProductForm({ ...productForm, artist: e.target.value })}
                                     />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="newArrival"
+                                            checked={productForm.isNewArrival || false}
+                                            onChange={e => setProductForm({ ...productForm, isNewArrival: e.target.checked })}
+                                            style={{ width: 'auto', margin: 0 }}
+                                        />
+                                        <label htmlFor="newArrival" style={{ marginBottom: 0, fontWeight: 'bold', color: '#D4AF37' }}>Mark as New Arrival</label>
+                                    </div>
+
                                 </div>
                                 <textarea
                                     placeholder="Description"
@@ -532,7 +551,7 @@ const AdminDashboard = () => {
                                         {products.map(p => (
                                             <tr key={p.id}>
                                                 <td><img src={p.imageUrl} alt={p.title} className="table-img" /></td>
-                                                <td>{p.title}</td>
+                                                <td>{p.title} {p.isNewArrival && <span className="badge" style={{ background: '#D4AF37', color: '#000', fontSize: '0.7em' }}>NEW</span>}</td>
                                                 <td>
                                                     <div>MRP: ₹{p.basePrice || p.price}</div>
                                                     {p.discountPercent > 0 && (

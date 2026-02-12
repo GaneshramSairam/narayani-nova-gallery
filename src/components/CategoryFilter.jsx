@@ -3,7 +3,7 @@ import { useAdmin } from '../context/AdminContext';
 
 const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
   const { categories } = useAdmin();
-  const displayCategories = ["All", ...categories.map(c => c.name)];
+  const displayCategories = ["All", "New Arrivals", ...categories.map(c => c.name)];
 
   return (
     <div className="category-filter">
