@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../assets/Naranis Nova updated complete logo.png';
+import logo from '../assets/Narayani Nila updated complete logo.png';
 
 const AboutModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -10,13 +10,13 @@ const AboutModal = ({ isOpen, onClose }) => {
         <button className="close-btn" onClick={onClose}>&times;</button>
 
         <div className="about-header">
-          <img src={logo} alt="Narayani's Nova Gallery" className="about-logo" />
+          <img src={logo} alt="Narayani Nila Gallery" className="about-logo" />
           <h2>Our Story</h2>
         </div>
 
         <div className="about-body">
           <p className="intro">
-            Welcome to <strong>Narayani’s Nova Gallery</strong> — where every piece is curated with care, crafted with passion, and styled especially for you.
+            Welcome to <strong>Narayani Nila Gallery</strong> — where every piece is curated with care, crafted with passion, and styled especially for you.
           </p>
 
           <p>
@@ -25,7 +25,7 @@ const AboutModal = ({ isOpen, onClose }) => {
           </p>
 
           <p>
-            At Narayani’s Nova Gallery, we hand-select every piece with an eye for beauty, detail, and individuality.
+            At Narayani Nila Gallery, we hand-select every piece with an eye for beauty, detail, and individuality.
             Our collections are inspired by elegance, everyday charm, and the quiet luxury that never goes out of style.
           </p>
 

@@ -1,17 +1,17 @@
-import logo from '../assets/Naranis Nova updated complete logo.png';
+import logo from '../assets/Narayani Nila updated complete logo.png';
 
 const PaymentSuccess = ({ onClose, order }) => {
   return (
     <div className="success-container">
       <div className="success-icon">
-        <img src={logo} alt="Narayani's Nova Gallery" className="success-logo" />
+        <img src={logo} alt="Narayani Nila Gallery" className="success-logo" />
       </div>
 
       <h2>Order Received!</h2>
 
       <div className="message-box">
         <p className="main-msg">
-          Thank you for shopping at Narayani’s Nova Gallery.
+          Thank you for shopping at Narayani Nila Gallery.
         </p>
         <p className="sub-msg">
           Your order has been received. Our team will verify your payment shortly.

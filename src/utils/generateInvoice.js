@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import logo from '../assets/Naranis Nova updated complete logo.png';
+import logo from '../assets/Narayani Nila updated complete logo.png';
 
 export const generateInvoice = async (order, invoiceSettings = {}) => {
     const { items: cartItems, total: totalAmount } = order;
@@ -48,7 +48,7 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setTextColor(212, 175, 55); // Gold
     doc.setFontSize(24);
     doc.setFont('times', 'bold'); // Serif font for luxury
-    doc.text("Narayani's Nova Gallery", pageWidth / 2, 40, { align: 'center' });
+    doc.text("Narayani Nila Gallery", pageWidth / 2, 40, { align: 'center' });
 
     // Tagline
     doc.setTextColor(229, 201, 120); // Soft Gold
@@ -194,17 +194,17 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
 
     const centerX = pageWidth / 2;
     const address = invoiceSettings.address || "123 Gallery St, Art City, AC 54321";
-    const email = invoiceSettings.email || "support@novagallery.com";
-    const website = invoiceSettings.website || "www.novagallery.com";
+    const email = invoiceSettings.email || "support@nilagallery.com";
+    const website = invoiceSettings.website || "www.nilagallery.com";
 
     doc.text(`${address}  |  ${email}  |  ${website}`, centerX, footerY + 12, { align: 'center' });
-    doc.text("Thank you for being part of the Nova Family", centerX, footerY + 22, { align: 'center' });
+    doc.text("Thank you for being part of the Nila Family", centerX, footerY + 22, { align: 'center' });
 
     // Save PDF
     try {
         const timestamp = Date.now();
-        const safeId = (order.id || `NOV-${timestamp}`).replace(/[^a-zA-Z0-9-_]/g, '');
-        doc.save(`Nova_Gallery_${safeId}.pdf`);
+        const safeId = (order.id || `NIL-${timestamp}`).replace(/[^a-zA-Z0-9-_]/g, '');
+        doc.save(`Nila_Gallery_${safeId}.pdf`);
     } catch (error) {
         console.error("Error generating invoice:", error);
         alert("There was an error generating your invoice. Please try again.");

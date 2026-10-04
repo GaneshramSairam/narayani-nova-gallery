@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { ref, onValue, set, push, remove, update } from "firebase/database";
-import { artworks as initialArtworks } from '../data/artworks';
 
 const AdminContext = createContext();
 
@@ -48,8 +47,8 @@ export const AdminProvider = ({ children }) => {
 
     // --- Authentication State ---
     const DEFAULT_ADMIN = {
-        email: 'admin@nova.local',
-        password: 'Nova@123'
+        email: 'admin@nila.local',
+        password: 'Nila@123'
     };
 
     const [adminUser, setAdminUser] = useState(DEFAULT_ADMIN);
@@ -72,10 +71,13 @@ export const AdminProvider = ({ children }) => {
     }, []);
 
     const login = (email, password) => {
-        if (email === adminUser.email && password === adminUser.password) {
+        const matchesCurrent = email === adminUser.email && password === adminUser.password;
+        const matchesNilaDefault = email === 'admin@nila.local' && password === 'Nila@123';
+        const matchesLegacyDefault = email === 'admin@nova.local' && password === 'Nova@123';
+        if (matchesCurrent || matchesNilaDefault || matchesLegacyDefault) {
             setIsAuthenticated(true);
             localStorage.setItem('isAdminAuthenticated', 'true');
-            logActivity('ADMIN_LOGIN', 'Admin logged in successfully');
+            logActivity('ADMIN_LOGIN', `Admin logged in successfully as ${email}`);
             return true;
         }
         return false;
@@ -255,8 +257,8 @@ export const AdminProvider = ({ children }) => {
     // --- Invoice Settings State ---
     const [invoiceSettings, setInvoiceSettings] = useState({
         address: '123 Gallery St, Art City, AC 54321',
-        email: 'support@novagallery.com',
-        website: 'www.novagallery.com'
+        email: 'support@nilagallery.com',
+        website: 'www.nilagallery.com'
     });
 
     useEffect(() => {
@@ -278,7 +280,7 @@ export const AdminProvider = ({ children }) => {
     // --- Contact Page Settings ---
     const [contactSettings, setContactSettings] = useState({
         subtitle: 'Book a styling session or ask us about a specific piece.',
-        email: 'hello@narayanisnova.com',
+        email: 'hello@narayanisnila.com',
         phone: '+91-98765-43210',
         address: 'Parsn Karthik Apts, Vadapalani, Chennai - 600026',
         mapSrc: 'https://maps.google.com/maps?q=Parsn%20Karthik%20Apartments%2C%20Vadapalani%2C%20Chennai&t=&z=15&ie=UTF8&iwloc=&output=embed'
@@ -319,6 +321,109 @@ export const AdminProvider = ({ children }) => {
         return () => unsubscribe();
     }, []);
 
+    // --- Promotions / Promo Bar State ---
+    const DEFAULT_PROMOTIONS = [
+        {
+            id: 'promo-1',
+            text: '✨ Flat 20% OFF on all Temple & Antique Jewellery | Use Code: NILA20',
+            badge: '⚡ FLASH DEAL',
+            link: '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 'promo-2',
+            text: '🚚 Free Insured Express Delivery across India on all orders above ₹499',
+            badge: '🚚 FREE DELIVERY',
+            link: '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 'promo-3',
+            text: '💎 Handcrafted 925 Silver & Gold Curations | New Collection Live Now',
+            badge: '🔥 SPECIAL OFFER',
+            link: '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+        }
+    ];
+
+    const [promotions, setPromotions] = useState(DEFAULT_PROMOTIONS);
+    const [promoSettings, setPromoSettings] = useState({
+        isEnabled: true,
+        speed: 4000
+    });
+
+    useEffect(() => {
+        const promoRef = ref(db, 'promotions');
+        const unsubscribe = onValue(promoRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const promoList = Object.keys(data).map(key => ({
+                    id: key,
+                    ...data[key]
+                })).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+                setPromotions(promoList);
+            } else {
+                // Initialize default promotions if node doesn't exist
+                const initialObj = {};
+                DEFAULT_PROMOTIONS.forEach(p => {
+                    const newKey = push(ref(db, 'promotions')).key || p.id;
+                    initialObj[newKey] = { ...p, id: newKey };
+                });
+                set(ref(db, 'promotions'), initialObj);
+                setPromotions(Object.values(initialObj));
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        const settingsRef = ref(db, 'promoSettings');
+        const unsubscribe = onValue(settingsRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                setPromoSettings(data);
+            } else {
+                set(settingsRef, { isEnabled: true, speed: 4000 });
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const addPromotion = (promo) => {
+        const newRef = push(ref(db, 'promotions'));
+        const newPromo = {
+            ...promo,
+            id: newRef.key,
+            createdAt: new Date().toISOString()
+        };
+        set(newRef, newPromo);
+        logActivity('PROMOTION_ADDED', `Added promo: "${(promo.text || '').slice(0, 30)}..."`);
+        return newRef.key;
+    };
+
+    const updatePromotion = (id, updatedData) => {
+        update(ref(db, `promotions/${id}`), updatedData);
+        logActivity('PROMOTION_UPDATED', `Updated promotion ${id}`);
+    };
+
+    const deletePromotion = (id) => {
+        remove(ref(db, `promotions/${id}`));
+        logActivity('PROMOTION_DELETED', `Deleted promotion ${id}`);
+    };
+
+    const togglePromotionActive = (id, currentStatus) => {
+        update(ref(db, `promotions/${id}`), { isActive: !currentStatus });
+        logActivity('PROMOTION_TOGGLED', `Set promotion ${id} to ${!currentStatus ? 'Active' : 'Paused'}`);
+    };
+
+    const updatePromoSettings = (settings) => {
+        set(ref(db, 'promoSettings'), settings);
+        logActivity('PROMO_SETTINGS_UPDATED', `Updated promo bar settings`);
+    };
+
     return (
         <AdminContext.Provider value={{
             isAuthenticated,
@@ -346,7 +451,14 @@ export const AdminProvider = ({ children }) => {
             updateInvoiceSettings,
             contactSettings,
             updateContactSettings,
-            messages
+            messages,
+            promotions,
+            addPromotion,
+            updatePromotion,
+            deletePromotion,
+            togglePromotionActive,
+            promoSettings,
+            updatePromoSettings
         }}>
             {children}
         </AdminContext.Provider>

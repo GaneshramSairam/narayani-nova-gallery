@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import logo from '../assets/Naranis Nova updated complete logo.png';
+import logo from '../assets/Narayani Nila updated complete logo.png';
 
 const IntroReveal = ({ onComplete }) => {
     const [progress, setProgress] = useState(0);
@@ -42,12 +42,12 @@ const IntroReveal = ({ onComplete }) => {
                 <div className="logo-wrapper">
                     <div className="pulse-circle"></div>
                     <div className="logo-circle">
-                        <img src={logo} alt="Narayani's Nova Logo" className="intro-logo-img" />
+                        <img src={logo} alt="Narayani Nila Logo" className="intro-logo-img" />
                     </div>
                 </div>
 
                 <h1 className="intro-title">
-                    Narayani's Nova
+                    Narayani Nila
                 </h1>
 
                 <p className="intro-subtitle">

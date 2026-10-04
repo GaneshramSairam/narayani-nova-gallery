@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { useNavigate } from 'react-router-dom';
 
-import logo from '../assets/Naranis Nova updated complete logo.png';
+import logo from '../assets/Narayani Nila updated complete logo.png';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +24,7 @@ const AdminLogin = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="logo-wrapper">
-          <img src={logo} alt="Narayani's Nova Gallery" className="login-logo" />
+          <img src={logo} alt="Narayani Nila Gallery" className="login-logo" />
         </div>
         <h1>Admin Login</h1>
         <p className="subtitle">Secure Access Only</p>

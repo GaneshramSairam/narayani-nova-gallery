@@ -9,7 +9,7 @@ const Footer = ({ onAboutClick }) => {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <p>&copy; {new Date().getFullYear()} Narayani's Nova Gallery. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Narayani Nila Gallery. All rights reserved.</p>
         <div className="social-links">
           {whatsapp && (
             <a href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">

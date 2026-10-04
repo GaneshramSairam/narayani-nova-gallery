@@ -18,11 +18,23 @@ const AdminDashboard = () => {
         socialLinks, updateSocialLinks,
         invoiceSettings, updateInvoiceSettings,
         messages,
-        contactSettings, updateContactSettings
+        contactSettings, updateContactSettings,
+        promotions, addPromotion, updatePromotion, deletePromotion, togglePromotionActive,
+        promoSettings, updatePromoSettings
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('products');
     const navigate = useNavigate();
+
+    // Promo Bar State
+    const [promoForm, setPromoForm] = useState({
+        text: '',
+        badge: '⚡ FLASH DEAL',
+        link: '',
+        isActive: true
+    });
+    const [editingPromoId, setEditingPromoId] = useState(null);
+    const [promoMsg, setPromoMsg] = useState('');
 
     // Product Form State
     const [isEditing, setIsEditing] = useState(false);
@@ -262,6 +274,61 @@ const AdminDashboard = () => {
         }
     };
 
+    // --- Promo Bar Handlers ---
+    const handlePromoSubmit = (e) => {
+        e.preventDefault();
+        if (!promoForm.text.trim()) return;
+
+        if (editingPromoId) {
+            updatePromotion(editingPromoId, {
+                text: promoForm.text.trim(),
+                badge: promoForm.badge.trim(),
+                link: promoForm.link.trim(),
+                isActive: promoForm.isActive
+            });
+            setPromoMsg('Promotion updated successfully!');
+            setEditingPromoId(null);
+        } else {
+            addPromotion({
+                text: promoForm.text.trim(),
+                badge: promoForm.badge.trim(),
+                link: promoForm.link.trim(),
+                isActive: promoForm.isActive
+            });
+            setPromoMsg('New promotion added to live banner!');
+        }
+
+        setPromoForm({
+            text: '',
+            badge: '⚡ FLASH DEAL',
+            link: '',
+            isActive: true
+        });
+
+        setTimeout(() => setPromoMsg(''), 3000);
+    };
+
+    const startPromoEdit = (promo) => {
+        setEditingPromoId(promo.id);
+        setPromoForm({
+            text: promo.text || '',
+            badge: promo.badge || '',
+            link: promo.link || '',
+            isActive: promo.isActive !== false
+        });
+        window.scrollTo({ top: 350, behavior: 'smooth' });
+    };
+
+    const cancelPromoEdit = () => {
+        setEditingPromoId(null);
+        setPromoForm({
+            text: '',
+            badge: '⚡ FLASH DEAL',
+            link: '',
+            isActive: true
+        });
+    };
+
     // --- Account Handlers ---
     const handleAccountUpdate = (e) => {
         e.preventDefault();
@@ -296,7 +363,7 @@ const AdminDashboard = () => {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        link.download = `narayanis-nova-activity-log-${dateStr}.csv`;
+        link.download = `narayanis-nila-activity-log-${dateStr}.csv`;
         link.click();
     };
 
@@ -341,7 +408,7 @@ const AdminDashboard = () => {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-        link.download = `narayanis-nova-orders-${dateStr}.csv`;
+        link.download = `narayanis-nila-orders-${dateStr}.csv`;
         link.click();
     };
 
@@ -389,6 +456,12 @@ const AdminDashboard = () => {
                         onClick={() => setActiveTab('messages')}
                     >
                         Messages
+                    </button>
+                    <button
+                        className={activeTab === 'promotions' ? 'active' : ''}
+                        onClick={() => setActiveTab('promotions')}
+                    >
+                        Promo Bar
                     </button>
                 </nav>
 
@@ -487,7 +560,7 @@ const AdminDashboard = () => {
                                                                 // Use the lh3.googleusercontent.com endpoint for best reliability
                                                                 return `https://lh3.googleusercontent.com/d/${idMatch[0]}=w1000`;
                                                             }
-                                                        } catch (e) {
+                                                        } catch {
                                                             console.warn('Failed to convert Drive link:', url);
                                                         }
                                                     }
@@ -737,6 +810,293 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
+                    {activeTab === 'promotions' && (
+                        <div className="promotions-section">
+                            <div className="section-header">
+                                <h2>Promo Bar & Announcements</h2>
+                                <p style={{ color: '#666', fontSize: '0.9rem', marginTop: '4px' }}>
+                                    Manage the top flashing promotional ticker displayed to customers across the website.
+                                </p>
+                            </div>
+
+                            {/* Global Banner Settings Card */}
+                            <div className="account-card" style={{ marginBottom: '2rem' }}>
+                                <h3>Global Banner Settings</h3>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2rem', marginTop: '1rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={promoSettings?.isEnabled !== false}
+                                            onChange={(e) => updatePromoSettings({ ...promoSettings, isEnabled: e.target.checked })}
+                                            style={{ width: '18px', height: '18px', accentColor: '#D4AF37' }}
+                                        />
+                                        <span>Show Promo Bar on Website</span>
+                                    </label>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                        <label style={{ fontWeight: 'bold' }}>Rotation Speed:</label>
+                                        <select
+                                            value={promoSettings?.speed || 4000}
+                                            onChange={(e) => updatePromoSettings({ ...promoSettings, speed: Number(e.target.value) })}
+                                            style={{ padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid #ccc', background: '#fff' }}
+                                        >
+                                            <option value={3000}>3 Seconds (Fast)</option>
+                                            <option value={4000}>4 Seconds (Recommended)</option>
+                                            <option value={5000}>5 Seconds (Relaxed)</option>
+                                            <option value={6000}>6 Seconds (Slow)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Live Storefront Preview */}
+                            <div className="account-card" style={{ marginBottom: '2rem', background: '#1c080b', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
+                                <h3 style={{ color: '#D4AF37', marginBottom: '0.5rem' }}>Live Storefront Preview</h3>
+                                <p style={{ color: '#E5C978', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                                    {promoSettings?.isEnabled === false
+                                        ? '⚠️ Promo Bar is currently hidden on the website.'
+                                        : 'Preview of how your deals appear at the top of the storefront with the flashing badge:'}
+                                </p>
+                                <div style={{
+                                    background: 'linear-gradient(90deg, #240406 0%, #3D080A 50%, #240406 100%)',
+                                    border: '1px solid rgba(212, 175, 55, 0.5)',
+                                    borderRadius: '6px',
+                                    padding: '10px 16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '10px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                                    minHeight: '44px'
+                                }}>
+                                    {promoForm.badge && (
+                                        <span style={{
+                                            background: 'linear-gradient(135deg, #D4AF37 0%, #B08D1E 100%)',
+                                            color: '#240406',
+                                            padding: '3px 9px',
+                                            borderRadius: '999px',
+                                            fontWeight: '800',
+                                            fontSize: '0.72rem',
+                                            letterSpacing: '0.06em',
+                                            boxShadow: '0 0 10px rgba(212, 175, 55, 0.6)'
+                                        }}>
+                                            {promoForm.badge}
+                                        </span>
+                                    )}
+                                    <span style={{ color: '#FFF3CD', fontWeight: '600', fontSize: '0.9rem' }}>
+                                        {promoForm.text || '✨ Flat 20% OFF on all Temple Jewellery | Use code NILA20'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Add / Edit Promo Form */}
+                            <div className="account-card" style={{ marginBottom: '2rem' }}>
+                                <h3>{editingPromoId ? 'Edit Promotion' : 'Add New Promotion'}</h3>
+                                <form onSubmit={handlePromoSubmit} style={{ marginTop: '1rem' }}>
+                                    <div className="form-group">
+                                        <label>Select Flashing Badge Preset</label>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                                            {['⚡ FLASH DEAL', '🔥 LIMITED OFFER', '🚚 FREE DELIVERY', '✨ NEW ARRIVAL', '🎉 FESTIVE SALE', '💎 SPECIAL OFFER'].map(preset => (
+                                                <button
+                                                    key={preset}
+                                                    type="button"
+                                                    onClick={() => setPromoForm({ ...promoForm, badge: preset })}
+                                                    style={{
+                                                        background: promoForm.badge === preset ? '#D4AF37' : '#f0f0f0',
+                                                        color: promoForm.badge === preset ? '#240406' : '#444',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '0.78rem',
+                                                        padding: '5px 12px',
+                                                        borderRadius: '20px',
+                                                        border: '1px solid #ccc',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {preset}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={promoForm.badge}
+                                            onChange={(e) => setPromoForm({ ...promoForm, badge: e.target.value })}
+                                            placeholder="Or enter custom badge (e.g. ⚡ FLASH DEAL)"
+                                            style={{ marginTop: '4px' }}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Announcement / Offer Text <span style={{ color: '#dc3545' }}>*</span></label>
+                                        <textarea
+                                            rows="2"
+                                            required
+                                            value={promoForm.text}
+                                            onChange={(e) => setPromoForm({ ...promoForm, text: e.target.value })}
+                                            placeholder="e.g. Flat 20% OFF on all Temple & Antique Jewellery | Use Code: NILA20"
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Optional Link (e.g. #contact or external URL)</label>
+                                        <input
+                                            type="text"
+                                            value={promoForm.link || ''}
+                                            onChange={(e) => setPromoForm({ ...promoForm, link: e.target.value })}
+                                            placeholder="e.g. #contact"
+                                        />
+                                    </div>
+
+                                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="promoActiveCheck"
+                                            checked={promoForm.isActive !== false}
+                                            onChange={(e) => setPromoForm({ ...promoForm, isActive: e.target.checked })}
+                                            style={{ width: '18px', height: '18px', accentColor: '#D4AF37' }}
+                                        />
+                                        <label htmlFor="promoActiveCheck" style={{ marginBottom: 0, cursor: 'pointer', fontWeight: 'bold' }}>
+                                            Active on website
+                                        </label>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                                        <button type="submit" className="save-btn" style={{ background: '#28a745' }}>
+                                            {editingPromoId ? 'Update Promotion' : 'Add Promotion'}
+                                        </button>
+                                        {editingPromoId && (
+                                            <button
+                                                type="button"
+                                                onClick={cancelPromoEdit}
+                                                className="cancel-btn"
+                                                style={{ background: '#6c757d', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                Cancel Edit
+                                            </button>
+                                        )}
+                                    </div>
+                                    {promoMsg && <p className="success-msg" style={{ marginTop: '1rem' }}>{promoMsg}</p>}
+                                </form>
+                            </div>
+
+                            {/* Current Promotions List */}
+                            <div className="account-card">
+                                <h3>Current Promotions ({promotions ? promotions.length : 0})</h3>
+                                {(!promotions || promotions.length === 0) ? (
+                                    <p style={{ color: '#777', padding: '1rem 0' }}>No promotions configured yet. Add your first promotion above!</p>
+                                ) : (
+                                    <div className="logs-table-wrapper" style={{ marginTop: '1rem' }}>
+                                        <table className="logs-table">
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ width: '150px' }}>Badge</th>
+                                                    <th>Announcement Text</th>
+                                                    <th style={{ width: '120px' }}>Status</th>
+                                                    <th style={{ width: '220px', textAlign: 'center' }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {promotions.map((p) => (
+                                                    <tr key={p.id}>
+                                                        <td>
+                                                            {p.badge ? (
+                                                                <span style={{
+                                                                    background: '#D4AF37',
+                                                                    color: '#240406',
+                                                                    padding: '3px 8px',
+                                                                    borderRadius: '999px',
+                                                                    fontWeight: 'bold',
+                                                                    fontSize: '0.75rem'
+                                                                }}>
+                                                                    {p.badge}
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ color: '#999', fontSize: '0.8rem' }}>None</span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ fontWeight: '500' }}>
+                                                            {p.text}
+                                                            {p.link && (
+                                                                <div style={{ fontSize: '0.75rem', color: '#007bff' }}>
+                                                                    Link: {p.link}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {p.isActive !== false ? (
+                                                                <span style={{ background: '#d4edda', color: '#155724', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.78rem' }}>
+                                                                    ● Active
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ background: '#f8d7da', color: '#721c24', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.78rem' }}>
+                                                                    ⏸ Paused
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                                                <button
+                                                                    onClick={() => togglePromotionActive(p.id, p.isActive !== false)}
+                                                                    style={{
+                                                                        background: p.isActive !== false ? '#ffc107' : '#28a745',
+                                                                        color: p.isActive !== false ? '#212529' : '#fff',
+                                                                        border: 'none',
+                                                                        padding: '5px 10px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '0.78rem',
+                                                                        fontWeight: 'bold',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    {p.isActive !== false ? 'Pause' : 'Activate'}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => startPromoEdit(p)}
+                                                                    style={{
+                                                                        background: '#007bff',
+                                                                        color: '#fff',
+                                                                        border: 'none',
+                                                                        padding: '5px 10px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '0.78rem',
+                                                                        fontWeight: 'bold',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (window.confirm('Delete this promotion?')) {
+                                                                            deletePromotion(p.id);
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        background: '#dc3545',
+                                                                        color: '#fff',
+                                                                        border: 'none',
+                                                                        padding: '5px 10px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '0.78rem',
+                                                                        fontWeight: 'bold',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'account' && (
                         <div className="account-section">
                             <h2>Settings & Configuration</h2>
@@ -761,7 +1121,7 @@ const AdminDashboard = () => {
                                             type="email"
                                             value={invoiceForm.email || ''}
                                             onChange={e => setInvoiceForm({ ...invoiceForm, email: e.target.value })}
-                                            placeholder="support@novagallery.com"
+                                            placeholder="support@nilagallery.com"
                                         />
                                     </div>
                                     <div className="form-group">
@@ -770,7 +1130,7 @@ const AdminDashboard = () => {
                                             type="text"
                                             value={invoiceForm.website || ''}
                                             onChange={e => setInvoiceForm({ ...invoiceForm, website: e.target.value })}
-                                            placeholder="www.novagallery.com"
+                                            placeholder="www.nilagallery.com"
                                         />
                                     </div>
                                     <button type="submit" className="save-btn">Save Invoice Details</button>

@@ -12,7 +12,7 @@ import { CartProvider, useCart } from './context/CartContext';
 import { AdminProvider, useAdmin } from './context/AdminContext';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
-import logo from './assets/Naranis Nova updated complete logo.png';
+import logo from './assets/Narayani Nila updated complete logo.png';
 
 const CartIcon = () => {
   const { setIsCartOpen, cartItems } = useCart();
@@ -126,11 +126,11 @@ function StoreLayout() {
         <header style={{ padding: '2rem', textAlign: 'center' }}>
           <div className="logo-container">
             {/* User Provided Logo Image */}
-            <img src={logo} alt="Narayani's Nova Gallery Emblem" className="lotus-icon-img" />
+            <img src={logo} alt="Narayani Nila Gallery Emblem" className="lotus-icon-img" />
 
             <div className="brand-text">
-              <h1 className="brand-name-main">Narayani’s</h1>
-              <h2 className="brand-name-sub">NOVA GALLERY</h2>
+              <h1 className="brand-name-main">Narayani</h1>
+              <h2 className="brand-name-sub">NILA GALLERY</h2>
               <p className="brand-tagline">Curated jewels – Styled for you</p>
             </div>
           </div>
