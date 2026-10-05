@@ -73,8 +73,7 @@ export const AdminProvider = ({ children }) => {
     const login = (email, password) => {
         const matchesCurrent = email === adminUser.email && password === adminUser.password;
         const matchesNilaDefault = email === 'admin@nila.local' && password === 'Nila@123';
-        const matchesLegacyDefault = email === 'admin@nova.local' && password === 'Nova@123';
-        if (matchesCurrent || matchesNilaDefault || matchesLegacyDefault) {
+        if (matchesCurrent || matchesNilaDefault) {
             setIsAuthenticated(true);
             localStorage.setItem('isAdminAuthenticated', 'true');
             logActivity('ADMIN_LOGIN', `Admin logged in successfully as ${email}`);

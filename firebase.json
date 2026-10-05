@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "nova-gallery",
     "public": "dist",
     "ignore": [
       "firebase.json",
