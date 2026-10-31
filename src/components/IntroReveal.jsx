@@ -49,6 +49,9 @@ const IntroReveal = ({ onComplete }) => {
                 <h1 className="intro-title">
                     Narayani Nila
                 </h1>
+                <h2 className="intro-sub-title">
+                    GALLERY
+                </h2>
 
                 <p className="intro-subtitle">
                     Curated Jewels &bull; Styling
@@ -173,20 +176,37 @@ const IntroReveal = ({ onComplete }) => {
         }
 
         .intro-title {
-          font-family: var(--font-heading, 'serif');
+          font-family: 'Playfair Display', serif;
           font-size: 2.25rem;
           font-weight: 700;
-          color: transparent;
+          color: #D4AF37;
           background: linear-gradient(to right, #F8E79C, #D4AF37, #F8E79C);
           -webkit-background-clip: text;
           background-clip: text;
-          margin-bottom: 1rem;
+          margin-bottom: 0.25rem;
           letter-spacing: -0.025em;
+        }
+
+        .intro-sub-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.1rem;
+          color: #D4AF37;
+          letter-spacing: 0.5em;
+          padding-left: 0.5em;
+          text-transform: uppercase;
+          margin-bottom: 1rem;
+          font-weight: 400;
+          text-align: center;
         }
 
         @media (min-width: 768px) {
           .intro-title {
             font-size: 3.75rem;
+          }
+          .intro-sub-title {
+            font-size: 1.45rem;
+            letter-spacing: 0.6em;
+            padding-left: 0.6em;
           }
         }
 

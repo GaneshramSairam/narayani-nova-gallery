@@ -46,8 +46,8 @@
       </g>
     </g>
 
-    <!-- Typography: NILA DRAPES -->
-    <text x="400" y="605" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-size="34" font-weight="bold" fill="url(#roseGoldGrad)" letter-spacing="14" stroke="none">NILA DRAPES</text>
+    <!-- Typography: SIGNATURE SAREES -->
+    <text x="400" y="605" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-size="34" font-weight="bold" fill="url(#roseGoldGrad)" letter-spacing="14" stroke="none">SIGNATURE SAREES</text>
     <text x="400" y="630" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-size="14" fill="#E5C978" letter-spacing="8" stroke="none">HERITAGE SILKS &amp; WEAVES</text>
   </g>
 </svg>

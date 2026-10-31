@@ -1406,7 +1406,7 @@ const AdminDashboard = () => {
                                                 <div>
                                                     <span style={{ fontWeight: 'bold', marginRight: '0.5rem' }}>{cat.name}</span>
                                                     <span className={`store-pill ${cat.store === 'drapes' ? 'drapes' : 'jewels'}`}>
-                                                        {cat.store === 'drapes' ? '🥻 Nila Drapes' : '💎 Nila Jewels'}
+                                                        {cat.store === 'drapes' ? '🥻 Signature Sarees' : '💎 Narayani Gallery'}
                                                     </span>
                                                 </div>
                                                 <button onClick={() => deleteCategory(cat.id)} className="delete-btn">Delete</button>
@@ -1461,7 +1461,7 @@ const AdminDashboard = () => {
                                         </div>
 
                                         <div className="form-group">
-                                            <label>Free Delivery for Jewellery (₹)</label>
+                                            <label>Free Delivery for Narayani Gallery (Jewellery) (₹)</label>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -1469,11 +1469,11 @@ const AdminDashboard = () => {
                                                 value={localDeliverySettings?.jewelsFreeDeliveryThreshold !== undefined ? localDeliverySettings.jewelsFreeDeliveryThreshold : 5000}
                                                 onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, jewelsFreeDeliveryThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
                                             />
-                                            <span className="text-sm">Orders with Jewellery above this amount get free delivery.</span>
+                                            <span className="text-sm">Orders with Narayani Gallery items above this amount get free delivery.</span>
                                         </div>
 
                                         <div className="form-group">
-                                            <label>Free Delivery for Sarees (₹)</label>
+                                            <label>Free Delivery for Signature Sarees (₹)</label>
                                             <input
                                                 type="number"
                                                 min="0"
@@ -1481,7 +1481,7 @@ const AdminDashboard = () => {
                                                 value={localDeliverySettings?.drapesFreeDeliveryThreshold !== undefined ? localDeliverySettings.drapesFreeDeliveryThreshold : 10000}
                                                 onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, drapesFreeDeliveryThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
                                             />
-                                            <span className="text-sm">Orders with Sarees above this amount get free delivery.</span>
+                                            <span className="text-sm">Orders with Signature Sarees items above this amount get free delivery.</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1598,7 +1598,7 @@ const AdminDashboard = () => {
                                 <div>
                                     <h2>Store Background Watermark Settings</h2>
                                     <p style={{ color: '#666', fontSize: '0.92rem', marginTop: '4px' }}>
-                                        Set independent background watermarks for <strong>Nila Jewels</strong> and <strong>Nila Drapes</strong> (similar to Microsoft Word page watermarks). Watermarks switch automatically as visitors toggle stores. Shared cart and checkout remain on clean neutral backgrounds.
+                                        Set independent background watermarks for <strong>Narayani Gallery</strong> and <strong>Signature Sarees</strong> (similar to Microsoft Word page watermarks). Watermarks switch automatically as visitors toggle stores. Shared cart and checkout remain on clean neutral backgrounds.
                                     </p>
                                 </div>
                             </div>
@@ -1612,10 +1612,10 @@ const AdminDashboard = () => {
                             <form onSubmit={handleSaveWatermarks}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem', maxWidth: '1050px', marginBottom: '2rem' }}>
                                     
-                                    {/* Nila Jewels Watermark Card */}
+                                    {/* Store Watermark Cards */}
                                     {['jewels', 'drapes'].map((storeKey) => {
                                         const isJewels = storeKey === 'jewels';
-                                        const storeTitle = isJewels ? '💎 Nila Jewels (Jewellery)' : '🥻 Nila Drapes (Sarees)';
+                                        const storeTitle = isJewels ? '💎 Narayani Gallery (Jewellery)' : '🥻 Signature Sarees (Sarees)';
                                         const currentConfig = localWatermarks?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey];
                                         const defaultAsset = isJewels ? watermarkJewelsDefault : watermarkDrapesDefault;
 

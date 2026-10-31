@@ -7,14 +7,14 @@ export const STORES = {
 export const STORE_CONFIG = {
     jewels: {
         id: 'jewels',
-        name: 'Nila Jewels',
+        name: 'Narayani Gallery',
         subtitle: 'Jewellery',
         tagline: 'Curated jewels – Styled for you',
         emptyMessage: 'No jewellery found matching your criteria.'
     },
     drapes: {
         id: 'drapes',
-        name: 'Nila Drapes',
+        name: 'Signature Sarees',
         subtitle: 'Sarees',
         tagline: 'Timeless weaves – Curated sarees',
         emptyMessage: 'No sarees found matching your criteria.'
@@ -23,7 +23,7 @@ export const STORE_CONFIG = {
 
 // Deterministic, explicit category-to-store mapping based on database inspection
 export const CATEGORY_STORE_MAP = {
-    // Nila Jewels (Jewellery)
+    // Narayani Gallery (Jewellery)
     'Necklace Sets': 'jewels',
     'Bracelets': 'jewels',
     'A.D NECKLACE SETS': 'jewels',
@@ -38,7 +38,7 @@ export const CATEGORY_STORE_MAP = {
     'Rings': 'jewels',
     'Sets': 'jewels',
 
-    // Nila Drapes (Sarees)
+    // Signature Sarees (Sarees)
     'Cotton Sarees': 'drapes',
     'Grape Silk': 'drapes',
     'Silk Sarees': 'drapes',

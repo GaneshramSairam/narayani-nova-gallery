@@ -144,14 +144,14 @@ function StoreLayout() {
       <CartDrawer />
 
       <div className="content-wrap">
-        <header style={{ padding: '2rem', textAlign: 'center' }}>
+        <header className="brand-header" style={{ padding: '2rem', textAlign: 'center' }}>
           <div className="logo-container">
             {/* User Provided Logo Image */}
             <img src={logo} alt="Narayani Nila Gallery Emblem" className="lotus-icon-img" />
 
             <div className="brand-text">
-              <h1 className="brand-name-main">Narayani</h1>
-              <h2 className="brand-name-sub">NILA GALLERY</h2>
+              <h1 className="brand-name-main">Narayani Nila</h1>
+              <h2 className="brand-name-sub">GALLERY</h2>
               <p className="brand-tagline">{STORE_CONFIG[activeStore]?.tagline || 'Curated jewels – Styled for you'}</p>
             </div>
           </div>
@@ -311,39 +311,106 @@ function StoreLayout() {
         .brand-text {
           text-align: center;
           margin-top: 1rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
 
         .brand-name-main {
           font-family: var(--font-heading);
-          font-size: 3.8rem; /* Slightly larger */
+          font-size: clamp(2rem, 5.2vw, 3.6rem);
           color: var(--color-gold-highlight);
           margin: 0;
-          line-height: 1.1;
-          background: linear-gradient(to right, #D4AF37, #F8E79C, #B08D1E);
+          line-height: 1.15;
+          background: linear-gradient(135deg, #D4AF37 0%, #F8E79C 50%, #B08D1E 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
           font-weight: 700;
+          white-space: nowrap;
+          text-align: center;
+          letter-spacing: 0.02em;
         }
 
         .brand-name-sub {
           font-family: var(--font-heading);
-          font-size: 1.6rem;
+          font-size: clamp(0.95rem, 2.2vw, 1.45rem);
           color: var(--color-gold-highlight);
-          letter-spacing: 0.4em; /* Increased spacing */
-          margin: 0.5rem 0;
+          letter-spacing: 0.55em;
+          padding-left: 0.55em; /* Ensures optical centering with letter-spacing */
+          margin: 0.4rem 0 0.5rem 0;
           font-weight: 400;
           text-transform: uppercase;
           text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          display: block;
+          text-align: center;
         }
 
         .brand-tagline {
           font-family: var(--font-main);
-          font-size: 1.1rem;
+          font-size: clamp(0.85rem, 1.8vw, 1.1rem);
           color: var(--color-gold-soft);
           font-style: italic;
           letter-spacing: 0.08em;
           font-weight: 300;
+          margin-top: 0.25rem;
+          text-align: center;
+        }
+
+        @media (max-width: 768px) {
+          .brand-header {
+            padding: 1.5rem 1rem !important;
+          }
+          .lotus-icon-img {
+            width: 140px;
+          }
+          .brand-name-main {
+            font-size: clamp(1.65rem, 5.5vw, 2.5rem);
+          }
+          .brand-name-sub {
+            font-size: 1.05rem;
+            letter-spacing: 0.45em;
+            padding-left: 0.45em;
+          }
+          .brand-tagline {
+            font-size: 0.95rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .brand-header {
+            padding: 1rem 0.5rem !important;
+          }
+          .lotus-icon-img {
+            width: 120px;
+          }
+          .brand-name-main {
+            font-size: clamp(1.4rem, 6.8vw, 1.9rem);
+          }
+          .brand-name-sub {
+            font-size: 0.85rem;
+            letter-spacing: 0.4em;
+            padding-left: 0.4em;
+            margin: 0.3rem 0;
+          }
+          .brand-tagline {
+            font-size: 0.85rem;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .lotus-icon-img {
+            width: 100px;
+          }
+          .brand-name-main {
+            font-size: 1.35rem;
+          }
+          .brand-name-sub {
+            font-size: 0.75rem;
+            letter-spacing: 0.35em;
+            padding-left: 0.35em;
+          }
         }
 
         @keyframes float {

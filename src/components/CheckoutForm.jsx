@@ -99,7 +99,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
         )}
         {!deliveryInfo.isFree && (
           <div className="delivery-notice-sub">
-            🚚 Free delivery on orders above ₹5,000 for Jewels & above ₹10,000 for Sarees.
+            🚚 Free delivery on orders above ₹5,000 for Narayani Gallery & above ₹10,000 for Signature Sarees.
           </div>
         )}
         <div className="summary-divider"></div>
@@ -196,7 +196,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
                 </option>
               ))}
             </select>
-            <span className="form-hint">Delivery charges applicable. Free delivery on orders above ₹5,000 for Jewels and above ₹10,000 for Sarees.</span>
+            <span className="form-hint">Delivery charges applicable. Free delivery on orders above ₹5,000 for Narayani Gallery and above ₹10,000 for Signature Sarees.</span>
           </div>
 
           <button type="submit" className="pay-btn">

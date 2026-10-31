@@ -63,8 +63,8 @@
       <line x1="0" y1="-25" x2="0" y2="25" stroke-width="2" />
     </g>
 
-    <!-- Typography: NILA JEWELS -->
-    <text x="400" y="605" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-size="34" font-weight="bold" fill="url(#goldGrad)" letter-spacing="14" stroke="none">NILA JEWELS</text>
+    <!-- Typography: NARAYANI GALLERY -->
+    <text x="400" y="605" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-size="34" font-weight="bold" fill="url(#goldGrad)" letter-spacing="14" stroke="none">NARAYANI GALLERY</text>
     <text x="400" y="630" text-anchor="middle" font-family="'Times New Roman', Georgia, serif" font-size="14" fill="#E5C978" letter-spacing="8" stroke="none">ROYAL ORNAMENTS</text>
   </g>
 </svg>

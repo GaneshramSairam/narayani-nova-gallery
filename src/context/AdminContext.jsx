@@ -143,7 +143,7 @@ export const AdminProvider = ({ children }) => {
             updates['products/' + id + '/store'] = targetStore;
         });
         update(ref(db), updates);
-        logActivity('PRODUCTS_BULK_STORE_ASSIGNED', `Assigned ${productIds.length} products to ${targetStore === 'jewels' ? 'Nila Jewels' : 'Nila Drapes'}`);
+        logActivity('PRODUCTS_BULK_STORE_ASSIGNED', `Assigned ${productIds.length} products to ${targetStore === 'jewels' ? 'Narayani Gallery' : 'Signature Sarees'}`);
     };
     const deleteProduct = (id) => {
         const product = products.find(p => p.id === id);

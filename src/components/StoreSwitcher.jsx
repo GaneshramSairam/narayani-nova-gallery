@@ -10,13 +10,13 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                 </div>
 
                 <div className="store-switcher-options">
-                    {/* Nila Jewels Option */}
+                    {/* Narayani Gallery (Jewellery) Option */}
                     <button
                         type="button"
                         className={`store-card ${activeStore === 'jewels' ? 'active' : ''}`}
                         onClick={() => onSelectStore('jewels')}
                         aria-pressed={activeStore === 'jewels'}
-                        aria-label="Switch to Nila Jewels"
+                        aria-label="Switch to Narayani Gallery"
                     >
                         <div className="store-card-active-indicator"></div>
                         <div className="store-card-icon-box">
@@ -37,13 +37,13 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                         )}
                     </button>
 
-                    {/* Nila Drapes Option */}
+                    {/* Signature Sarees Option */}
                     <button
                         type="button"
                         className={`store-card ${activeStore === 'drapes' ? 'active' : ''}`}
                         onClick={() => onSelectStore('drapes')}
                         aria-pressed={activeStore === 'drapes'}
-                        aria-label="Switch to Nila Drapes"
+                        aria-label="Switch to Signature Sarees"
                     >
                         <div className="store-card-active-indicator"></div>
                         <div className="store-card-icon-box">
