@@ -121,3 +121,6 @@ dist
 firebase-debug.log
 # Exclude Firebase Admin SDK keys
 nova-gallery-firebase-adminsdk-*.json
+
+# Local database backups
+data_backup/

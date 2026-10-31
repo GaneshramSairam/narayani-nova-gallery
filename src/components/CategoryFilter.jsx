@@ -1,9 +1,12 @@
 import React from 'react';
 import { useAdmin } from '../context/AdminContext';
 
-const CategoryFilter = ({ activeCategory, setActiveCategory }) => {
+const CategoryFilter = ({ activeCategory, setActiveCategory, activeStore = 'jewels' }) => {
   const { categories } = useAdmin();
-  const displayCategories = ["All", "New Arrivals", ...categories.map(c => c.name)];
+  
+  // Scope categories to the selected store
+  const storeCategories = categories.filter(c => (c.store || 'jewels') === activeStore);
+  const displayCategories = ["All", "New Arrivals", ...storeCategories.map(c => c.name)];
 
   return (
     <div className="category-filter">

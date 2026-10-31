@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import logo from '../assets/Narayani Nila updated complete logo.png';
 
 export const generateInvoice = async (order, invoiceSettings = {}) => {
-    const { items: cartItems, total: totalAmount } = order;
+    const { items: cartItems = [], total: totalAmount } = order;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -26,7 +26,7 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
 
     // Top Header Bar (Deep Wine)
     doc.setFillColor(76, 11, 13); // #4C0B0D
-    doc.rect(0, 0, pageWidth, 65, 'F'); // Increased height for logo
+    doc.rect(0, 0, pageWidth, 65, 'F');
 
     // Gold Accent Line under header
     doc.setDrawColor(212, 175, 55); // #D4AF37
@@ -47,16 +47,15 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     // Brand Name
     doc.setTextColor(212, 175, 55); // Gold
     doc.setFontSize(24);
-    doc.setFont('times', 'bold'); // Serif font for luxury
+    doc.setFont('times', 'bold');
     doc.text("Narayani Nila Gallery", pageWidth / 2, 40, { align: 'center' });
 
     // Tagline
     doc.setTextColor(229, 201, 120); // Soft Gold
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text("CURATED JEWELS - STYLED FOR YOU", pageWidth / 2, 50, { align: 'center' });
+    doc.text("CURATED JEWELS & SAREES - STYLED FOR YOU", pageWidth / 2, 50, { align: 'center' });
 
-    // 3. Invoice Details Section
     // 3. Invoice Details Section
     doc.setTextColor(76, 11, 13); // Deep Wine
     doc.setFontSize(18);
@@ -67,8 +66,10 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100); // Grey
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 88);
-    doc.text(`Invoice ID: #NOV-${Date.now().toString().slice(-6)}`, 20, 94);
+    const orderDate = order.date ? new Date(order.date).toLocaleDateString() : new Date().toLocaleDateString();
+    doc.text(`Date: ${orderDate}`, 20, 88);
+    const invoiceId = order.id ? `#${order.id}` : `#NIL-${Date.now().toString().slice(-6)}`;
+    doc.text(`Invoice ID: ${invoiceId}`, 20, 94);
 
     // Bill To Section
     const customer = order.customer || {};
@@ -82,7 +83,7 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setTextColor(60, 60, 60);
 
     let billToY = 88;
-    doc.text(customer.name || 'Guest', 130, billToY);
+    doc.text(customer.name || 'Valued Customer', 130, billToY);
     billToY += 5;
 
     if (customer.email) {
@@ -90,16 +91,18 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         billToY += 5;
     }
 
-    doc.text(customer.phone || '', 130, billToY);
-    billToY += 5;
+    if (customer.phone) {
+        doc.text(customer.phone, 130, billToY);
+        billToY += 5;
+    }
 
     if (customer.address) {
-        const addressLines = doc.splitTextToSize(customer.address, 60);
+        const addressLines = doc.splitTextToSize(customer.address, 65);
         doc.text(addressLines, 130, billToY);
     }
 
     // 4. Table Design
-    let yPos = 130; // Moved down to accommodate Bill To
+    let yPos = 130;
 
     // Table Header Background
     doc.setFillColor(76, 11, 13); // Deep Wine
@@ -126,7 +129,7 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     cartItems.forEach((item, index) => {
         // Alternating row background
         if (index % 2 === 0) {
-            doc.setFillColor(248, 245, 240); // Very subtle warm grey
+            doc.setFillColor(248, 245, 240);
             doc.rect(20, yPos - 6, pageWidth - 40, 10, 'F');
         }
 
@@ -136,7 +139,6 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         const productCode = item.artist ? ` [${item.artist}]` : '';
         const titleWithCode = item.title + productCode;
 
-        // Handle long titles with code - increased width constraint
         const splitTitle = doc.splitTextToSize(titleWithCode, 70);
         doc.text(splitTitle, 25, yPos);
 
@@ -146,39 +148,56 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
         doc.text(`Rs. ${item.price.toFixed(2)}`, 160, yPos, { align: 'right' });
         doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, yPos, { align: 'right' });
 
-        // Adjust yPos based on title lines
         yPos += (splitTitle.length * 5) + 5;
     });
 
     // 5. Totals Section
-    yPos += 10;
+    yPos += 8;
     // Decorative Line
     doc.setDrawColor(212, 175, 55); // Gold
     doc.setLineWidth(0.5);
     doc.line(20, yPos, pageWidth - 20, yPos);
 
-    yPos += 15;
+    yPos += 10;
 
-    // Total Label & Amount
+    const itemsSubtotal = order.subtotal !== undefined ? Number(order.subtotal) : cartItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
     const totalMRP = cartItems.reduce((acc, item) => acc + (item.basePrice || item.price) * item.quantity, 0);
-    const totalSavings = totalMRP - totalAmount;
+    const totalSavings = totalMRP - itemsSubtotal;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
 
     if (totalSavings > 0) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Total MRP: Rs. ${totalMRP.toFixed(2)}`, 185, yPos - 10, { align: 'right' });
-        doc.text(`Total Savings: -Rs. ${totalSavings.toFixed(2)}`, 185, yPos - 5, { align: 'right' });
+        doc.text(`Total MRP: Rs. ${totalMRP.toFixed(2)}`, 185, yPos, { align: 'right' });
+        yPos += 6;
+        doc.setTextColor(40, 140, 40);
+        doc.text(`Total Savings: -Rs. ${totalSavings.toFixed(2)}`, 185, yPos, { align: 'right' });
+        yPos += 6;
+    }
+
+    // Subtotal line
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Items Subtotal: Rs. ${itemsSubtotal.toFixed(2)}`, 185, yPos, { align: 'right' });
+    yPos += 6;
+
+    // Delivery Charge line (if recorded or present)
+    if (order.deliveryCharge !== undefined) {
+        const delCharge = Number(order.deliveryCharge) || 0;
+        const stateSuffix = order.shippingState ? ` (${order.shippingState})` : '';
+        const delText = delCharge === 0 ? 'FREE' : `Rs. ${delCharge.toFixed(2)}`;
+        doc.text(`Delivery Charges: ${delText}`, 185, yPos, { align: 'right' });
+        yPos += 8;
     }
 
     doc.setFont('times', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(76, 11, 13); // Deep Wine
-    doc.text("TOTAL AMOUNT", 135, yPos, { align: 'right' });
+    doc.text("TOTAL PAID", 135, yPos, { align: 'right' });
 
     doc.setFontSize(16);
     doc.setTextColor(212, 175, 55); // Gold
-    doc.text(`Rs. ${totalAmount.toFixed(2)}`, 185, yPos, { align: 'right' });
+    doc.text(`Rs. ${Number(totalAmount).toFixed(2)}`, 185, yPos, { align: 'right' });
 
     // 6. Footer (Luxury Band)
     const footerHeight = 30;
@@ -193,12 +212,12 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     doc.setFont('helvetica', 'normal');
 
     const centerX = pageWidth / 2;
-    const address = invoiceSettings.address || "123 Gallery St, Art City, AC 54321";
+    const address = invoiceSettings.address || "Parsn Karthik Apts, Vadapalani, Chennai - 600026";
     const email = invoiceSettings.email || "support@nilagallery.com";
     const website = invoiceSettings.website || "www.nilagallery.com";
 
     doc.text(`${address}  |  ${email}  |  ${website}`, centerX, footerY + 12, { align: 'center' });
-    doc.text("Thank you for being part of the Nila Family", centerX, footerY + 22, { align: 'center' });
+    doc.text("Thank you for being part of the Narayani Nila Family", centerX, footerY + 22, { align: 'center' });
 
     // Save PDF
     try {

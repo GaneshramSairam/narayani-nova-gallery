@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { ref, onValue, set, push, remove, update } from "firebase/database";
+import { INITIAL_DELIVERY_SETTINGS } from '../utils/deliveryUtils';
+import { resolveProductStore, resolveCategoryStore } from '../utils/storeConstants';
+import { DEFAULT_STORE_WATERMARKS } from '../utils/watermarkConstants';
 
 const AdminContext = createContext();
 
@@ -101,7 +104,11 @@ export const AdminProvider = ({ children }) => {
         const unsubscribe = onValue(productsRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                setProducts(Object.values(data));
+                const list = Object.values(data).map(p => ({
+                    ...p,
+                    store: p.store || resolveProductStore(p)
+                }));
+                setProducts(list);
             } else {
                 // Initialize with default artworks if empty (only once)
                 // We check if it's truly empty to avoid overwriting deletions
@@ -116,7 +123,8 @@ export const AdminProvider = ({ children }) => {
 
     const addProduct = (product) => {
         const newProductRef = push(ref(db, 'products'));
-        const newProduct = { ...product, id: newProductRef.key };
+        const resolvedStore = product.store || resolveProductStore(product);
+        const newProduct = { ...product, store: resolvedStore, id: newProductRef.key };
         set(newProductRef, newProduct);
         logActivity('PRODUCT_ADDED', `Added product: ${product.title}`);
     };
@@ -127,6 +135,16 @@ export const AdminProvider = ({ children }) => {
         logActivity('PRODUCT_UPDATED', `Updated product ID: ${id}`);
     };
 
+    
+    const bulkUpdateProductsStore = (productIds, targetStore) => {
+        if (!Array.isArray(productIds) || productIds.length === 0) return;
+        const updates = {};
+        productIds.forEach(id => {
+            updates['products/' + id + '/store'] = targetStore;
+        });
+        update(ref(db), updates);
+        logActivity('PRODUCTS_BULK_STORE_ASSIGNED', `Assigned ${productIds.length} products to ${targetStore === 'jewels' ? 'Nila Jewels' : 'Nila Drapes'}`);
+    };
     const deleteProduct = (id) => {
         const product = products.find(p => p.id === id);
         remove(ref(db, `products/${id}`));
@@ -158,7 +176,10 @@ export const AdminProvider = ({ children }) => {
             ...order,
             id: customId,
             date: new Date().toISOString(),
-            status: 'Pending'
+            status: 'Pending',
+            subtotal: order.subtotal !== undefined ? order.subtotal : order.total,
+            deliveryCharge: order.deliveryCharge !== undefined ? order.deliveryCharge : 0,
+            shippingState: order.shippingState || ''
         };
 
         set(ref(db, `orders/${customId}`), finalOrder);
@@ -203,7 +224,11 @@ export const AdminProvider = ({ children }) => {
         const unsubscribe = onValue(categoriesRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                setCategories(Object.values(data));
+                const list = Object.values(data).map(c => ({
+                    ...c,
+                    store: c.store || resolveCategoryStore(c)
+                }));
+                setCategories(list);
             } else {
                 // Seed default categories if empty
                 const defaultCategories = [
@@ -221,9 +246,11 @@ export const AdminProvider = ({ children }) => {
         return () => unsubscribe();
     }, []);
 
-    const addCategory = (name) => {
+    const addCategory = (nameOrObj, maybeStore) => {
         const newCatRef = push(ref(db, 'categories'));
-        const newCat = { id: newCatRef.key, name };
+        const name = typeof nameOrObj === 'object' ? nameOrObj.name : nameOrObj;
+        const store = typeof nameOrObj === 'object' ? nameOrObj.store : (maybeStore || 'jewels');
+        const newCat = { id: newCatRef.key, name, store };
         set(newCatRef, newCat);
         logActivity('CATEGORY_ADDED', `Added category: ${name}`);
     };
@@ -319,6 +346,50 @@ export const AdminProvider = ({ children }) => {
         });
         return () => unsubscribe();
     }, []);
+
+
+    // --- Delivery Settings State ---
+    const [deliverySettings, setDeliverySettings] = useState(INITIAL_DELIVERY_SETTINGS);
+
+    useEffect(() => {
+        const deliveryRef = ref(db, 'deliverySettings');
+        const unsubscribe = onValue(deliveryRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                setDeliverySettings(data);
+            } else {
+                set(deliveryRef, INITIAL_DELIVERY_SETTINGS);
+                setDeliverySettings(INITIAL_DELIVERY_SETTINGS);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const updateDeliverySettings = (newSettings) => {
+        set(ref(db, 'deliverySettings'), newSettings);
+        logActivity('DELIVERY_SETTINGS_UPDATED', 'Updated state-wise delivery charges');
+    };
+
+    // --- Store Watermark Settings State ---
+    const [storeWatermarks, setStoreWatermarks] = useState(DEFAULT_STORE_WATERMARKS);
+
+    useEffect(() => {
+        const watermarkRef = ref(db, 'storeWatermarks');
+        const unsubscribe = onValue(watermarkRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                setStoreWatermarks(data);
+            } else {
+                setStoreWatermarks(DEFAULT_STORE_WATERMARKS);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const updateStoreWatermarks = (newWatermarks) => {
+        set(ref(db, 'storeWatermarks'), newWatermarks);
+        logActivity('STORE_WATERMARKS_UPDATED', 'Updated store background watermark settings');
+    };
 
     // --- Promotions / Promo Bar State ---
     const DEFAULT_PROMOTIONS = [
@@ -434,6 +505,7 @@ export const AdminProvider = ({ children }) => {
             addProduct,
             updateProduct,
             deleteProduct,
+            bulkUpdateProductsStore,
             orders,
             addOrder,
             verifyOrder,
@@ -457,7 +529,11 @@ export const AdminProvider = ({ children }) => {
             deletePromotion,
             togglePromotionActive,
             promoSettings,
-            updatePromoSettings
+            updatePromoSettings,
+            deliverySettings,
+            updateDeliverySettings,
+            storeWatermarks,
+            updateStoreWatermarks
         }}>
             {children}
         </AdminContext.Provider>

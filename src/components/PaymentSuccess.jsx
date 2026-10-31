@@ -1,3 +1,4 @@
+import React from 'react';
 import logo from '../assets/Narayani Nila updated complete logo.png';
 
 const PaymentSuccess = ({ onClose, order }) => {
@@ -21,7 +22,13 @@ const PaymentSuccess = ({ onClose, order }) => {
 
       <div className="order-info">
         <p>Order ID: <strong>{order?.id}</strong></p>
-        <p>Total: <strong>₹{order?.total.toFixed(2)}</strong></p>
+        {order?.subtotal !== undefined && (
+          <p>Items Subtotal: <strong>₹{Number(order.subtotal).toFixed(2)}</strong></p>
+        )}
+        {order?.deliveryCharge !== undefined && (
+          <p>Delivery Charges: <strong>{Number(order.deliveryCharge) === 0 ? 'FREE' : `₹${Number(order.deliveryCharge).toFixed(2)}`}</strong></p>
+        )}
+        <p>Total: <strong>₹{order?.total?.toFixed(2)}</strong></p>
       </div>
 
       <button className="close-btn" onClick={onClose}>
@@ -98,13 +105,13 @@ const PaymentSuccess = ({ onClose, order }) => {
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.05em;
         }
 
         .close-btn:hover {
           background: var(--color-gold-highlight);
-          color: #1a0b0e;
-          box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+          color: var(--color-bg);
+          box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
         }
 
         @keyframes fadeIn {
@@ -113,8 +120,8 @@ const PaymentSuccess = ({ onClose, order }) => {
         }
 
         @keyframes scaleIn {
-          from { transform: scale(0); }
-          to { transform: scale(1); }
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </div>

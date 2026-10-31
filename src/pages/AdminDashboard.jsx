@@ -4,7 +4,12 @@ import { storage } from '../firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 import { generateInvoice } from '../utils/generateInvoice';
+import { INDIAN_STATES_AND_UTS, normalizeIndianState, INITIAL_DELIVERY_SETTINGS } from '../utils/deliveryUtils';
+import { STORES, STORE_CONFIG, resolveProductStore } from '../utils/storeConstants';
 import { compressImage } from '../utils/compressImage';
+import { DEFAULT_STORE_WATERMARKS, validateWatermarkImage } from '../utils/watermarkConstants';
+import watermarkJewelsDefault from '../assets/watermark_jewels.svg';
+import watermarkDrapesDefault from '../assets/watermark_drapes.svg';
 
 const AdminDashboard = () => {
     const {
@@ -20,7 +25,9 @@ const AdminDashboard = () => {
         messages,
         contactSettings, updateContactSettings,
         promotions, addPromotion, updatePromotion, deletePromotion, togglePromotionActive,
-        promoSettings, updatePromoSettings
+        promoSettings, updatePromoSettings,
+        deliverySettings, updateDeliverySettings, bulkUpdateProductsStore,
+        storeWatermarks, updateStoreWatermarks
     } = useAdmin();
 
     const [activeTab, setActiveTab] = useState('products');
@@ -56,6 +63,101 @@ const AdminDashboard = () => {
     });
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
+
+    // Delivery Charges State
+    const [localDeliverySettings, setLocalDeliverySettings] = useState(deliverySettings || INITIAL_DELIVERY_SETTINGS);
+    const [deliverySearch, setDeliverySearch] = useState('');
+    const [deliverySavedMsg, setDeliverySavedMsg] = useState('');
+
+    useEffect(() => {
+        if (deliverySettings) {
+            setLocalDeliverySettings(deliverySettings);
+        }
+    }, [deliverySettings]);
+
+    const handleSaveDeliverySettings = (e) => {
+        e.preventDefault();
+        updateDeliverySettings(localDeliverySettings);
+        setDeliverySavedMsg('State-wise delivery charges updated successfully!');
+        setTimeout(() => setDeliverySavedMsg(''), 3000);
+    };
+
+    const handleStateRateChange = (stateName, value) => {
+        setLocalDeliverySettings(prev => ({
+            ...prev,
+            stateRates: {
+                ...(prev?.stateRates || {}),
+                [stateName]: value === '' ? '' : Math.max(0, parseFloat(value) || 0)
+            }
+        }));
+    };
+
+
+    // Watermark Settings State
+    const [localWatermarks, setLocalWatermarks] = useState(storeWatermarks || DEFAULT_STORE_WATERMARKS);
+    const [watermarkMsg, setWatermarkMsg] = useState('');
+    const [watermarkError, setWatermarkError] = useState('');
+
+    useEffect(() => {
+        if (storeWatermarks) {
+            setLocalWatermarks(storeWatermarks);
+        }
+    }, [storeWatermarks]);
+
+    const handleWatermarkImageUpload = (storeKey, file) => {
+        setWatermarkError('');
+        const validation = validateWatermarkImage(file);
+        if (!validation.valid) {
+            setWatermarkError(validation.error);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            setLocalWatermarks(prev => ({
+                ...prev,
+                [storeKey]: {
+                    ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                    imageUrl: dataUrl
+                }
+            }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleResetWatermarkDefault = (storeKey) => {
+        const defaultImg = storeKey === 'drapes' ? watermarkDrapesDefault : watermarkJewelsDefault;
+        setLocalWatermarks(prev => ({
+            ...prev,
+            [storeKey]: {
+                ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                imageUrl: defaultImg
+            }
+        }));
+    };
+
+    const handleRemoveWatermarkImage = (storeKey) => {
+        setLocalWatermarks(prev => ({
+            ...prev,
+            [storeKey]: {
+                ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                imageUrl: ''
+            }
+        }));
+    };
+
+    const handleSaveWatermarks = (e) => {
+        e.preventDefault();
+        updateStoreWatermarks(localWatermarks);
+        setWatermarkMsg('Store background watermark settings saved successfully!');
+        setTimeout(() => setWatermarkMsg(''), 3000);
+    };
+
+    // Product Filter & Bulk Assignment State
+    const [productStoreFilter, setProductStoreFilter] = useState('all');
+    const [productAdminSearch, setProductAdminSearch] = useState('');
+    const [selectedProductIds, setSelectedProductIds] = useState([]);
+    const [newCategoryStore, setNewCategoryStore] = useState('jewels');
 
     // Account Form State
     const [accountForm, setAccountForm] = useState({
@@ -269,7 +371,7 @@ const AdminDashboard = () => {
     const handleAddCategory = (e) => {
         e.preventDefault();
         if (newCategory.trim()) {
-            addCategory(newCategory.trim());
+            addCategory(newCategory.trim(), newCategoryStore);
             setNewCategory('');
         }
     };
@@ -369,7 +471,7 @@ const AdminDashboard = () => {
 
     const exportOrdersToCSV = () => {
         // Exact header requirement: Order ID,Date,Time,Customer Name,Email,Phone,Address,Items,Total,Status
-        const headers = ['Order ID', 'Date', 'Time', 'Customer Name', 'Email', 'Phone', 'Address', 'Items', 'Total', 'Status'];
+        const headers = ['Order ID', 'Date', 'Time', 'Customer Name', 'Email', 'Phone', 'Address', 'Shipping State', 'Items', 'Subtotal', 'Delivery Charge', 'Total Amount', 'Status'];
 
         const rows = orders.map(order => {
             const dateObj = new Date(order.date || Date.now());
@@ -438,6 +540,18 @@ const AdminDashboard = () => {
                         onClick={() => setActiveTab('categories')}
                     >
                         Categories
+                    </button>
+                    <button
+                        className={activeTab === 'delivery' ? 'active' : ''}
+                        onClick={() => setActiveTab('delivery')}
+                    >
+                        🚚 Delivery Charges
+                    </button>
+                    <button
+                        className={activeTab === 'watermarks' ? 'active' : ''}
+                        onClick={() => setActiveTab('watermarks')}
+                    >
+                        🎨 Store Watermarks
                     </button>
                     <button
                         className={activeTab === 'logs' ? 'active' : ''}
@@ -1179,7 +1293,14 @@ const AdminDashboard = () => {
                                         email: formData.get('email'),
                                         phone: formData.get('phone'),
                                         address: formData.get('address'),
-                                        mapSrc: formData.get('mapSrc')
+                                        mapSrc: (() => {
+                                            let raw = (formData.get('mapSrc') || '').trim();
+                                            if (raw.includes('<iframe')) {
+                                                const match = raw.match(/src=["']([^"']+)["']/);
+                                                if (match && match[1]) raw = match[1];
+                                            }
+                                            return raw;
+                                        })()
                                     });
                                     alert('Contact page details updated!');
                                 }}>
@@ -1192,11 +1313,11 @@ const AdminDashboard = () => {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>Map Embed URL (iframe src)</label>
+                                        <label>Google Map Embed Code or URL</label>
                                         <input
                                             name="mapSrc"
                                             defaultValue={contactSettings?.mapSrc || ''}
-                                            placeholder="https://maps.google.com/..."
+                                            placeholder="Paste iframe embed code from Google Maps or URL..."
                                         />
                                     </div>
                                     <div className="form-group">
@@ -1282,7 +1403,12 @@ const AdminDashboard = () => {
                                     <ul className="category-items">
                                         {categories.map(cat => (
                                             <li key={cat.id} className="category-item">
-                                                <span>{cat.name}</span>
+                                                <div>
+                                                    <span style={{ fontWeight: 'bold', marginRight: '0.5rem' }}>{cat.name}</span>
+                                                    <span className={`store-pill ${cat.store === 'drapes' ? 'drapes' : 'jewels'}`}>
+                                                        {cat.store === 'drapes' ? '🥻 Nila Drapes' : '💎 Nila Jewels'}
+                                                    </span>
+                                                </div>
                                                 <button onClick={() => deleteCategory(cat.id)} className="delete-btn">Delete</button>
                                             </li>
                                         ))}
@@ -1292,7 +1418,445 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
-                    {activeTab === 'social' && (
+                    
+                    {activeTab === 'delivery' && (
+                        <div className="delivery-section">
+                            <div className="section-header">
+                                <div>
+                                    <h2>State-wise Delivery Charges (India)</h2>
+                                    <p style={{ color: '#666', fontSize: '0.92rem', marginTop: '4px' }}>
+                                        Configure delivery rates for all 28 states and 8 union territories. Delivery is calculated dynamically at checkout based on shipping state.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSaveDeliverySettings}>
+                                {/* Global Delivery Parameters */}
+                                <div className="account-card" style={{ maxWidth: '800px', marginBottom: '1.5rem' }}>
+                                    <h3>General Delivery Settings</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                                        <div className="form-group">
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={localDeliverySettings?.isEnabled !== false}
+                                                    onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, isEnabled: e.target.checked })}
+                                                    style={{ width: '18px', height: '18px', margin: 0 }}
+                                                />
+                                                <span>Enable Delivery Charges</span>
+                                            </label>
+                                            <span className="text-sm">When disabled, delivery is free for all orders.</span>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Default Rate (₹) for unlisted states</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={localDeliverySettings?.defaultRate !== undefined ? localDeliverySettings.defaultRate : 100}
+                                                onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, defaultRate: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                                required
+                                            />
+                                            <span className="text-sm">Applies if a state's rate is unset.</span>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Free Delivery for Jewellery (₹)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                placeholder="5000"
+                                                value={localDeliverySettings?.jewelsFreeDeliveryThreshold !== undefined ? localDeliverySettings.jewelsFreeDeliveryThreshold : 5000}
+                                                onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, jewelsFreeDeliveryThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                            />
+                                            <span className="text-sm">Orders with Jewellery above this amount get free delivery.</span>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Free Delivery for Sarees (₹)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                placeholder="10000"
+                                                value={localDeliverySettings?.drapesFreeDeliveryThreshold !== undefined ? localDeliverySettings.drapesFreeDeliveryThreshold : 10000}
+                                                onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, drapesFreeDeliveryThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                            />
+                                            <span className="text-sm">Orders with Sarees above this amount get free delivery.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* State Rates Table */}
+                                <div className="account-card" style={{ maxWidth: '800px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <h3>State & Union Territory Rates ({INDIAN_STATES_AND_UTS.length} Total)</h3>
+                                        <input
+                                            type="text"
+                                            placeholder="Search state/UT (e.g. Tamil Nadu, Kerala)..."
+                                            value={deliverySearch}
+                                            onChange={e => setDeliverySearch(e.target.value)}
+                                            style={{ maxWidth: '300px', marginBottom: 0, padding: '0.5rem' }}
+                                        />
+                                    </div>
+
+                                    <div style={{ maxHeight: '520px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '6px' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ position: 'sticky', top: 0, background: '#1a0b0e', color: '#D4AF37', zIndex: 5 }}>
+                                                <tr>
+                                                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>State / Union Territory</th>
+                                                    <th style={{ padding: '0.75rem', textAlign: 'left', width: '180px' }}>Delivery Charge (₹)</th>
+                                                    <th style={{ padding: '0.75rem', textAlign: 'left', width: '180px' }}>Status / Quick Set</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {INDIAN_STATES_AND_UTS
+                                                    .filter(st => !deliverySearch || st.toLowerCase().includes(deliverySearch.toLowerCase()))
+                                                    .map(st => {
+                                                        const rates = localDeliverySettings?.stateRates || {};
+                                                        const rawVal = rates[st];
+                                                        const isExplicitlyConfigured = rawVal !== undefined && rawVal !== null && rawVal !== '';
+                                                        const displayVal = isExplicitlyConfigured ? rawVal : '';
+                                                        const isZero = Number(rawVal) === 0 && isExplicitlyConfigured;
+
+                                                        return (
+                                                            <tr key={st} style={{ borderBottom: '1px solid #eee', background: st === 'Tamil Nadu' ? 'rgba(212, 175, 55, 0.08)' : 'transparent' }}>
+                                                                <td style={{ padding: '0.75rem', fontWeight: st === 'Tamil Nadu' ? 'bold' : 'normal' }}>
+                                                                    {st} {st === 'Tamil Nadu' && <span style={{ fontSize: '0.75rem', background: '#D4AF37', color: '#1a0b0e', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>Primary Base</span>}
+                                                                </td>
+                                                                <td style={{ padding: '0.75rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                                        <span style={{ fontWeight: 'bold' }}>₹</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="1"
+                                                                            placeholder={`Default (${localDeliverySettings?.defaultRate ?? 100})`}
+                                                                            value={displayVal}
+                                                                            onChange={e => handleStateRateChange(st, e.target.value)}
+                                                                            style={{ margin: 0, padding: '0.4rem 0.6rem', width: '130px', fontWeight: isExplicitlyConfigured ? 'bold' : 'normal' }}
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td style={{ padding: '0.75rem' }}>
+                                                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                                        {isZero ? (
+                                                                            <span style={{ color: '#28a745', fontWeight: 'bold', fontSize: '0.85rem' }}>FREE</span>
+                                                                        ) : isExplicitlyConfigured ? (
+                                                                            <span style={{ color: '#333', fontSize: '0.85rem' }}>Configured</span>
+                                                                        ) : (
+                                                                            <span style={{ color: '#888', fontStyle: 'italic', fontSize: '0.85rem' }}>Uses Default</span>
+                                                                        )}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleStateRateChange(st, '0')}
+                                                                            style={{ padding: '2px 6px', fontSize: '0.75rem', background: '#e8f5e9', color: '#2e7d32', border: '1px solid #c8e6c9', borderRadius: '3px', cursor: 'pointer' }}
+                                                                            title="Set Free Delivery for this state"
+                                                                        >
+                                                                            Free
+                                                                        </button>
+                                                                        {isExplicitlyConfigured && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const nextRates = { ...(localDeliverySettings?.stateRates || {}) };
+                                                                                    delete nextRates[st];
+                                                                                    setLocalDeliverySettings({ ...localDeliverySettings, stateRates: nextRates });
+                                                                                }}
+                                                                                style={{ padding: '2px 6px', fontSize: '0.75rem', background: '#f5f5f5', color: '#666', border: '1px solid #ddd', borderRadius: '3px', cursor: 'pointer' }}
+                                                                                title="Reset to default rate"
+                                                                            >
+                                                                                Reset
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <button type="submit" className="save-btn" style={{ background: '#28a745', padding: '0.8rem 2rem', fontSize: '1rem' }}>
+                                            Save Delivery Settings
+                                        </button>
+                                        {deliverySavedMsg && (
+                                            <span className="success-msg" style={{ margin: 0 }}>{deliverySavedMsg}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+
+                    {activeTab === 'watermarks' && (
+                        <div className="watermarks-section">
+                            <div className="section-header">
+                                <div>
+                                    <h2>Store Background Watermark Settings</h2>
+                                    <p style={{ color: '#666', fontSize: '0.92rem', marginTop: '4px' }}>
+                                        Set independent background watermarks for <strong>Nila Jewels</strong> and <strong>Nila Drapes</strong> (similar to Microsoft Word page watermarks). Watermarks switch automatically as visitors toggle stores. Shared cart and checkout remain on clean neutral backgrounds.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {watermarkError && (
+                                <div style={{ background: '#f8d7da', color: '#721c24', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.5rem', border: '1px solid #f5c6cb' }}>
+                                    ⚠️ {watermarkError}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSaveWatermarks}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem', maxWidth: '1050px', marginBottom: '2rem' }}>
+                                    
+                                    {/* Nila Jewels Watermark Card */}
+                                    {['jewels', 'drapes'].map((storeKey) => {
+                                        const isJewels = storeKey === 'jewels';
+                                        const storeTitle = isJewels ? '💎 Nila Jewels (Jewellery)' : '🥻 Nila Drapes (Sarees)';
+                                        const currentConfig = localWatermarks?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey];
+                                        const defaultAsset = isJewels ? watermarkJewelsDefault : watermarkDrapesDefault;
+
+                                        return (
+                                            <div key={storeKey} className="account-card" style={{ borderTop: `4px solid ${isJewels ? '#D4AF37' : '#C2185B'}` }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                    <h3 style={{ margin: 0 }}>{storeTitle}</h3>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 'bold' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={currentConfig.isEnabled !== false}
+                                                            onChange={e => {
+                                                                setLocalWatermarks(prev => ({
+                                                                    ...prev,
+                                                                    [storeKey]: {
+                                                                        ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                                                                        isEnabled: e.target.checked
+                                                                    }
+                                                                }));
+                                                            }}
+                                                            style={{ width: '16px', height: '16px', margin: 0 }}
+                                                        />
+                                                        <span>Enable</span>
+                                                    </label>
+                                                </div>
+
+                                                {/* Live Visual Preview Box */}
+                                                <div style={{ marginBottom: '1rem' }}>
+                                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.4rem' }}>
+                                                        Live Background Preview:
+                                                    </label>
+                                                    <div className="watermark-preview-canvas" style={{
+                                                        background: '#1a0b0e',
+                                                        borderRadius: '8px',
+                                                        height: '190px',
+                                                        position: 'relative',
+                                                        overflow: 'hidden',
+                                                        display: 'flex',
+                                                        alignItems: currentConfig.position === 'top' ? 'flex-start' : (currentConfig.position === 'bottom' ? 'flex-end' : 'center'),
+                                                        justifyContent: 'center',
+                                                        border: '1.5px solid rgba(212, 175, 55, 0.3)',
+                                                        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.6)'
+                                                    }}>
+                                                        {currentConfig.isEnabled !== false && currentConfig.imageUrl ? (
+                                                            <img
+                                                                src={currentConfig.imageUrl}
+                                                                alt="Watermark preview"
+                                                                style={{
+                                                                    maxWidth: `${currentConfig.scale || 70}%`,
+                                                                    maxHeight: `${currentConfig.scale || 70}%`,
+                                                                    objectFit: 'contain',
+                                                                    opacity: currentConfig.opacity !== undefined ? currentConfig.opacity : 0.08,
+                                                                    transform: `rotate(${currentConfig.rotation || 0}deg)`,
+                                                                    pointerEvents: 'none',
+                                                                    transition: 'all 0.3s ease'
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{ color: '#888', fontStyle: 'italic', fontSize: '0.85rem', alignSelf: 'center' }}>
+                                                                Watermark Disabled
+                                                            </div>
+                                                        )}
+
+                                                        {/* Simulated sample card overlay to show clear readability */}
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            bottom: '12px',
+                                                            left: '12px',
+                                                            right: '12px',
+                                                            background: 'rgba(61, 8, 10, 0.85)',
+                                                            border: '1px solid rgba(212, 175, 55, 0.4)',
+                                                            borderRadius: '6px',
+                                                            padding: '6px 10px',
+                                                            color: '#E5C978',
+                                                            fontSize: '0.75rem',
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center',
+                                                            pointerEvents: 'none'
+                                                        }}>
+                                                            <span>✨ Sample Product Card (100% Readable)</span>
+                                                            <strong style={{ color: '#D4AF37' }}>₹4,999</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Upload & Actions */}
+                                                <div className="form-group">
+                                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Watermark Image File (PNG, SVG, WEBP)</label>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                                                        onChange={(e) => {
+                                                            if (e.target.files && e.target.files[0]) {
+                                                                handleWatermarkImageUpload(storeKey, e.target.files[0]);
+                                                                e.target.value = null;
+                                                            }
+                                                        }}
+                                                        style={{ fontSize: '0.85rem' }}
+                                                    />
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleResetWatermarkDefault(storeKey)}
+                                                            style={{ fontSize: '0.78rem', background: '#f0f0f0', border: '1px solid #ccc', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                                        >
+                                                            Reset to Default Motif
+                                                        </button>
+                                                        {currentConfig.imageUrl && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveWatermarkImage(storeKey)}
+                                                                style={{ fontSize: '0.78rem', background: '#ffebee', color: '#c62828', border: '1px solid #ffcdd2', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                                            >
+                                                                Remove Image
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Opacity Slider */}
+                                                <div className="form-group">
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                                            Watermark Opacity:
+                                                        </label>
+                                                        <span style={{ fontWeight: 'bold', color: '#D4AF37', fontSize: '0.85rem' }}>
+                                                            {Math.round((currentConfig.opacity !== undefined ? currentConfig.opacity : 0.08) * 100)}%
+                                                        </span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0.02"
+                                                        max="0.30"
+                                                        step="0.01"
+                                                        value={currentConfig.opacity !== undefined ? currentConfig.opacity : 0.08}
+                                                        onChange={e => {
+                                                            const val = parseFloat(e.target.value);
+                                                            setLocalWatermarks(prev => ({
+                                                                ...prev,
+                                                                [storeKey]: {
+                                                                    ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                                                                    opacity: val
+                                                                }
+                                                            }));
+                                                        }}
+                                                        style={{ width: '100%', margin: '0.3rem 0', accentColor: '#D4AF37' }}
+                                                    />
+                                                    <span className="text-sm">Recommended subtle range: 5% - 12% (similar to Word documents).</span>
+                                                </div>
+
+                                                {/* Size & Position in 2 columns */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.82rem', fontWeight: 'bold' }}>
+                                                            Scale: {currentConfig.scale || 70}%
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="30"
+                                                            max="100"
+                                                            step="5"
+                                                            value={currentConfig.scale || 70}
+                                                            onChange={e => {
+                                                                const val = parseInt(e.target.value, 10);
+                                                                setLocalWatermarks(prev => ({
+                                                                    ...prev,
+                                                                    [storeKey]: {
+                                                                        ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                                                                        scale: val
+                                                                    }
+                                                                }));
+                                                            }}
+                                                            style={{ width: '100%', margin: '0.2rem 0', accentColor: '#D4AF37' }}
+                                                        />
+                                                    </div>
+
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.82rem', fontWeight: 'bold' }}>Vertical Position</label>
+                                                        <select
+                                                            value={currentConfig.position || 'center'}
+                                                            onChange={e => {
+                                                                const val = e.target.value;
+                                                                setLocalWatermarks(prev => ({
+                                                                    ...prev,
+                                                                    [storeKey]: {
+                                                                        ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                                                                        position: val
+                                                                    }
+                                                                }));
+                                                            }}
+                                                            style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+                                                        >
+                                                            <option value="center">Center (Standard)</option>
+                                                            <option value="top">Top Header Area</option>
+                                                            <option value="bottom">Bottom Footer Area</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                {/* Rotation Option */}
+                                                <div className="form-group">
+                                                    <label style={{ fontSize: '0.82rem', fontWeight: 'bold' }}>Watermark Angle / Rotation</label>
+                                                    <select
+                                                        value={currentConfig.rotation || 0}
+                                                        onChange={e => {
+                                                            const val = parseInt(e.target.value, 10);
+                                                            setLocalWatermarks(prev => ({
+                                                                ...prev,
+                                                                [storeKey]: {
+                                                                    ...(prev?.[storeKey] || DEFAULT_STORE_WATERMARKS[storeKey]),
+                                                                    rotation: val
+                                                                }
+                                                            }));
+                                                        }}
+                                                        style={{ padding: '0.4rem', fontSize: '0.85rem', marginBottom: 0 }}
+                                                    >
+                                                        <option value="0">0° Horizontal (Default)</option>
+                                                        <option value="-15">-15° Gentle Diagonal</option>
+                                                        <option value="-30">-30° Classic Word Diagonal</option>
+                                                        <option value="15">15° Upward Angle</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                                    <button type="submit" className="save-btn" style={{ background: '#28a745', padding: '0.8rem 2rem', fontSize: '1rem' }}>
+                                        Save Watermark Settings
+                                    </button>
+                                    {watermarkMsg && (
+                                        <span className="success-msg" style={{ margin: 0 }}>{watermarkMsg}</span>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+{activeTab === 'social' && (
                         <div className="social-section">
                             <h2>Social Media Links</h2>
                             <div className="account-card">
@@ -1328,6 +1892,91 @@ const AdminDashboard = () => {
             </div>
 
             <style>{`
+        
+        /* Store and Bulk Toolbar Styles */
+        .store-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        .store-pill.jewels {
+            background: #fff8e1;
+            color: #b08d1e;
+            border: 1px solid #ffe082;
+        }
+        .store-pill.drapes {
+            background: #fce4ec;
+            color: #c2185b;
+            border: 1px solid #f8bbd0;
+        }
+
+        .store-filter-pills {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .store-filter-btn {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 0.4rem 0.9rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .store-filter-btn:hover {
+            border-color: #D4AF37;
+        }
+        .store-filter-btn.active {
+            background: #1a0b0e;
+            color: #D4AF37;
+            border-color: #D4AF37;
+            font-weight: bold;
+        }
+
+        .bulk-actions-toolbar {
+            background: #eef2f7;
+            border: 1px solid #ccd7e4;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+        .bulk-assign-btn {
+            border: none;
+            padding: 0.4rem 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .bulk-assign-btn.jewels {
+            background: #D4AF37;
+            color: #1a0b0e;
+        }
+        .bulk-assign-btn.drapes {
+            background: #880e4f;
+            color: #fff;
+        }
+        .bulk-clear-btn {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.82rem;
+        }
+
+        .row-selected {
+            background: #fffde7 !important;
+        }
+
         .dashboard-container {
           min-height: 100vh;
           background: #f4f4f4;

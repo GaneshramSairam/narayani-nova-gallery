@@ -76,24 +76,42 @@ const CartIcon = () => {
 };
 
 import PromoBar from './components/PromoBar';
+import StoreSwitcher from './components/StoreSwitcher';
+import BackgroundWatermark from './components/BackgroundWatermark';
+import { STORE_CONFIG } from './utils/storeConstants';
 
 function StoreLayout() {
+  const [showIntro, setShowIntro] = useState(() => {
+    return sessionStorage.getItem('hasSeenIntro') !== 'true';
+  });
+  const [activeStore, setActiveStore] = useState('jewels');
   const [selectedArtwork, setSelectedArtwork] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const { products } = useAdmin();
 
-  // Sort products by newest first
+  const handleSelectStore = (store) => {
+    setActiveStore(store);
+    setActiveCategory('All');
+    setSearchTerm('');
+  };
+
+  // Scope products strictly to the active store (Nila Jewels or Nila Drapes)
+  const storeProducts = useMemo(() => {
+    return products.filter((p) => (p.store || 'jewels') === activeStore);
+  }, [products, activeStore]);
+
+  // Sort products by newest first within the store
   const sortedProducts = useMemo(() => {
-    return [...products].sort((a, b) => {
+    return [...storeProducts].sort((a, b) => {
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (Number(a.id) > 1000000000000 ? Number(a.id) : 0);
       const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (Number(b.id) > 1000000000000 ? Number(b.id) : 0);
       return timeB - timeA;
     });
-  }, [products]);
+  }, [storeProducts]);
 
-  // Get top 4/8 as New Arrivals
+  // Get top 4 as New Arrivals for the active store
   const newArrivals = useMemo(() => sortedProducts.slice(0, 4), [sortedProducts]);
 
   const filteredArtworks = useMemo(() => {
@@ -101,9 +119,9 @@ function StoreLayout() {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         artwork.title.toLowerCase().includes(term) ||
-        artwork.artist.toLowerCase().includes(term) ||
-        artwork.category.toLowerCase().includes(term) ||
-        artwork.description.toLowerCase().includes(term);
+        (artwork.artist && artwork.artist.toLowerCase().includes(term)) ||
+        (artwork.category && artwork.category.toLowerCase().includes(term)) ||
+        (artwork.description && artwork.description.toLowerCase().includes(term));
 
       let matchesCategory = true;
       if (activeCategory === 'New Arrivals') {
@@ -118,7 +136,10 @@ function StoreLayout() {
 
   return (
     <div className="app-container">
+      {showIntro && <IntroReveal onComplete={() => { setShowIntro(false); sessionStorage.setItem('hasSeenIntro', 'true'); }} />}
+      <BackgroundWatermark activeStore={activeStore} />
       <PromoBar />
+      <StoreSwitcher activeStore={activeStore} onSelectStore={handleSelectStore} />
       <CartIcon />
       <CartDrawer />
 
@@ -131,13 +152,13 @@ function StoreLayout() {
             <div className="brand-text">
               <h1 className="brand-name-main">Narayani</h1>
               <h2 className="brand-name-sub">NILA GALLERY</h2>
-              <p className="brand-tagline">Curated jewels – Styled for you</p>
+              <p className="brand-tagline">{STORE_CONFIG[activeStore]?.tagline || 'Curated jewels – Styled for you'}</p>
             </div>
           </div>
 
           <div className="controls">
             <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-            <CategoryFilter activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+            <CategoryFilter activeCategory={activeCategory} setActiveCategory={setActiveCategory} activeStore={activeStore} />
           </div>
         </header>
 
@@ -189,7 +210,7 @@ function StoreLayout() {
             />
             {filteredArtworks.length === 0 && (
               <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: '2rem' }}>
-                No artworks found matching your criteria.
+                {STORE_CONFIG[activeStore]?.emptyMessage || 'No items found matching your criteria.'}
               </div>
             )}
           </section>
@@ -218,6 +239,21 @@ function StoreLayout() {
         
         .content-wrap {
           flex: 1;
+          position: relative;
+          z-index: 1;
+          transition: padding-left 0.3s ease;
+        }
+
+        @media (min-width: 1024px) {
+          .content-wrap {
+            padding-left: 240px;
+          }
+        }
+
+        @media (max-width: 1023px) {
+          .content-wrap {
+            padding-left: 0;
+          }
         }
 
         .controls {
@@ -388,27 +424,27 @@ const ProtectedRoute = ({ children }) => {
 };
 
 import IntroReveal from './components/IntroReveal';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
-  const [showIntro, setShowIntro] = useState(true);
-
   return (
     <Router>
       <AdminProvider>
         <CartProvider>
-          {showIntro && <IntroReveal onComplete={() => setShowIntro(false)} />}
-          <Routes>
-            <Route path="/" element={<StoreLayout />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<StoreLayout />} />
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </ErrorBoundary>
         </CartProvider>
       </AdminProvider>
     </Router>
