@@ -71,12 +71,16 @@ const Contact = () => {
                                     <svg className="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                                     <div>
                                         <p className="info-label">Studio</p>
-                                        <p className="info-value">{contactSettings?.address || "[Studio Address Placeholder]"}</p>
+                                        {/* ORIGINAL FULL ADDRESS (preserved for easy restoration):
+                                        <p className="info-value">{contactSettings?.address || "Parsn Karthik Apts, Vadapalani, Chennai - 600026"}</p>
+                                        */}
+                                        <p className="info-value">Vadapalani, Chennai</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* EMBEDDED MAP (temporarily commented out for easy restoration):
                         <div className="map-container">
                             <iframe
                                 width="100%"
@@ -92,6 +96,7 @@ const Contact = () => {
                             ></iframe>
                             <div className="map-overlay"></div>
                         </div>
+                        */}
                     </div>
 
                     {/* Form */}
@@ -197,7 +202,7 @@ const Contact = () => {
           width: 100%;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: flex-start; /* adjusted while map is commented out */
         }
 
         @media (min-width: 768px) {
@@ -222,7 +227,7 @@ const Contact = () => {
         .info-list {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.75rem;
         }
 
         .info-item {
