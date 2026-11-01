@@ -4,7 +4,7 @@ import { storage } from '../firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 import { generateInvoice } from '../utils/generateInvoice';
-import { INDIAN_STATES_AND_UTS, normalizeIndianState, INITIAL_DELIVERY_SETTINGS } from '../utils/deliveryUtils';
+import { INDIAN_STATES_AND_UTS, normalizeIndianState, INITIAL_DELIVERY_SETTINGS, validateDeliverySettings } from '../utils/deliveryUtils';
 import { STORES, STORE_CONFIG, resolveProductStore } from '../utils/storeConstants';
 import { compressImage } from '../utils/compressImage';
 import { DEFAULT_STORE_WATERMARKS, validateWatermarkImage } from '../utils/watermarkConstants';
@@ -68,6 +68,7 @@ const AdminDashboard = () => {
     const [localDeliverySettings, setLocalDeliverySettings] = useState(deliverySettings || INITIAL_DELIVERY_SETTINGS);
     const [deliverySearch, setDeliverySearch] = useState('');
     const [deliverySavedMsg, setDeliverySavedMsg] = useState('');
+    const [deliveryError, setDeliveryError] = useState('');
 
     useEffect(() => {
         if (deliverySettings) {
@@ -77,9 +78,19 @@ const AdminDashboard = () => {
 
     const handleSaveDeliverySettings = (e) => {
         e.preventDefault();
-        updateDeliverySettings(localDeliverySettings);
-        setDeliverySavedMsg('State-wise delivery charges updated successfully!');
-        setTimeout(() => setDeliverySavedMsg(''), 3000);
+        setDeliveryError('');
+        const validation = validateDeliverySettings(localDeliverySettings);
+        if (!validation.isValid) {
+            setDeliveryError(validation.error);
+            return;
+        }
+        try {
+            updateDeliverySettings(localDeliverySettings);
+            setDeliverySavedMsg('Delivery charges and quantity settings updated successfully!');
+            setTimeout(() => setDeliverySavedMsg(''), 4000);
+        } catch (err) {
+            setDeliveryError(err.message || 'Failed to update delivery settings.');
+        }
     };
 
     const handleStateRateChange = (stateName, value) => {
@@ -819,7 +830,17 @@ const AdminDashboard = () => {
                                                         <div className="text-sm">{order.customer?.phone || '-'}</div>
                                                     </td>
                                                     <td className="address-cell">{order.customer?.address || '-'}</td>
-                                                    <td>₹{(order.total || 0).toFixed(2)}</td>
+                                                    <td>
+                                                        <div className="font-bold">₹{(order.total || 0).toFixed(2)}</div>
+                                                        {order.deliveryCharge !== undefined && (
+                                                            <div style={{ fontSize: '0.75rem', color: '#B58D3D', marginTop: '2px' }}>
+                                                                Del: {order.deliveryCharge === 0 ? 'FREE' : `₹${order.deliveryCharge}`}
+                                                                {order.deliveryBreakdown && (order.deliveryBreakdown.sareeSurcharge > 0 || order.deliveryBreakdown.jewelsSurcharge > 0) && (
+                                                                    <span> (Base: ₹{order.deliveryBreakdown.effectiveBaseCharge}{order.deliveryBreakdown.sareeSurcharge > 0 ? `, Sarees: +₹${order.deliveryBreakdown.sareeSurcharge}` : ''}{order.deliveryBreakdown.jewelsSurcharge > 0 ? `, Jewels: +₹${order.deliveryBreakdown.jewelsSurcharge}` : ''})</span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </td>
                                                     <td>
                                                         <span className={`status-badge ${(order.status || 'pending').toLowerCase()}`}>
                                                             {order.status || 'Pending'}
@@ -1431,6 +1452,17 @@ const AdminDashboard = () => {
                             </div>
 
                             <form onSubmit={handleSaveDeliverySettings}>
+                                {deliveryError && (
+                                    <div style={{ background: '#f8d7da', color: '#721c24', padding: '0.85rem 1.2rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #f5c6cb', fontWeight: '500' }}>
+                                        ⚠️ {deliveryError}
+                                    </div>
+                                )}
+                                {deliverySavedMsg && (
+                                    <div style={{ background: '#d4edda', color: '#155724', padding: '0.85rem 1.2rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #c3e6cb', fontWeight: '500' }}>
+                                        ✅ {deliverySavedMsg}
+                                    </div>
+                                )}
+
                                 {/* Global Delivery Parameters */}
                                 <div className="account-card" style={{ maxWidth: '800px', marginBottom: '1.5rem' }}>
                                     <h3>General Delivery Settings</h3>
@@ -1469,7 +1501,7 @@ const AdminDashboard = () => {
                                                 value={localDeliverySettings?.jewelsFreeDeliveryThreshold !== undefined ? localDeliverySettings.jewelsFreeDeliveryThreshold : 5000}
                                                 onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, jewelsFreeDeliveryThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
                                             />
-                                            <span className="text-sm">Orders with Narayani Gallery items above this amount get free delivery.</span>
+                                            <span className="text-sm">Orders with Narayani Gallery items at or above this amount get free delivery.</span>
                                         </div>
 
                                         <div className="form-group">
@@ -1481,7 +1513,155 @@ const AdminDashboard = () => {
                                                 value={localDeliverySettings?.drapesFreeDeliveryThreshold !== undefined ? localDeliverySettings.drapesFreeDeliveryThreshold : 10000}
                                                 onChange={e => setLocalDeliverySettings({ ...localDeliverySettings, drapesFreeDeliveryThreshold: Math.max(0, parseFloat(e.target.value) || 0) })}
                                             />
-                                            <span className="text-sm">Orders with Signature Sarees items above this amount get free delivery.</span>
+                                            <span className="text-sm">Orders with Signature Sarees items at or above this amount get free delivery.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Signature Sarees Quantity-based Delivery Card */}
+                                <div className="account-card" style={{ maxWidth: '800px', marginBottom: '1.5rem', borderTop: '4px solid #880e4f' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <h3 style={{ margin: 0 }}>🥻 Signature Sarees — Quantity-based Delivery</h3>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={localDeliverySettings?.sareeQuantityDelivery?.isEnabled === true}
+                                                onChange={e => {
+                                                    const current = localDeliverySettings?.sareeQuantityDelivery || { blockSize: 5, chargePerBlock: 50 };
+                                                    setLocalDeliverySettings({
+                                                        ...localDeliverySettings,
+                                                        sareeQuantityDelivery: {
+                                                            ...current,
+                                                            isEnabled: e.target.checked
+                                                        }
+                                                    });
+                                                }}
+                                                style={{ width: '18px', height: '18px', margin: 0 }}
+                                            />
+                                            <span>Enable Saree Quantity Surcharge</span>
+                                        </label>
+                                    </div>
+                                    <p style={{ color: '#666', fontSize: '0.88rem', margin: '0 0 1rem 0' }}>
+                                        The first block of sarees is covered by the shipping state's base delivery charge. Each additional block (or partial block) incurs the configured fee.
+                                    </p>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                                        <div className="form-group">
+                                            <label>Sarees per delivery block *</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                placeholder="5"
+                                                value={localDeliverySettings?.sareeQuantityDelivery?.blockSize !== undefined ? localDeliverySettings.sareeQuantityDelivery.blockSize : 5}
+                                                onChange={e => {
+                                                    const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                                                    setLocalDeliverySettings({
+                                                        ...localDeliverySettings,
+                                                        sareeQuantityDelivery: {
+                                                            ...(localDeliverySettings?.sareeQuantityDelivery || {}),
+                                                            blockSize: val
+                                                        }
+                                                    });
+                                                }}
+                                            />
+                                            <span className="text-sm">Positive whole number (e.g. 5). The first block is covered by the base charge.</span>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Additional delivery charge per saree block (₹) *</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                placeholder="50"
+                                                value={localDeliverySettings?.sareeQuantityDelivery?.chargePerBlock !== undefined ? localDeliverySettings.sareeQuantityDelivery.chargePerBlock : 50}
+                                                onChange={e => {
+                                                    const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                                                    setLocalDeliverySettings({
+                                                        ...localDeliverySettings,
+                                                        sareeQuantityDelivery: {
+                                                            ...(localDeliverySettings?.sareeQuantityDelivery || {}),
+                                                            chargePerBlock: val
+                                                        }
+                                                    });
+                                                }}
+                                            />
+                                            <span className="text-sm">Applies once for each additional block. A partially filled additional block incurs the full additional charge.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Narayani Gallery Quantity-based Delivery Card */}
+                                <div className="account-card" style={{ maxWidth: '800px', marginBottom: '1.5rem', borderTop: '4px solid #D4AF37' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <h3 style={{ margin: 0 }}>💎 Narayani Gallery — Quantity-based Delivery</h3>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={localDeliverySettings?.jewelsQuantityDelivery?.isEnabled === true}
+                                                onChange={e => {
+                                                    const current = localDeliverySettings?.jewelsQuantityDelivery || { blockSize: 3, chargePerBlock: 30 };
+                                                    setLocalDeliverySettings({
+                                                        ...localDeliverySettings,
+                                                        jewelsQuantityDelivery: {
+                                                            ...current,
+                                                            isEnabled: e.target.checked
+                                                        }
+                                                    });
+                                                }}
+                                                style={{ width: '18px', height: '18px', margin: 0 }}
+                                            />
+                                            <span>Enable Jewellery Quantity Surcharge</span>
+                                        </label>
+                                    </div>
+                                    <p style={{ color: '#666', fontSize: '0.88rem', margin: '0 0 1rem 0' }}>
+                                        The first block of jewellery items is covered by the shipping state's base delivery charge. Each additional block (or partial block) incurs the configured fee.
+                                    </p>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                                        <div className="form-group">
+                                            <label>Jewellery units per delivery block *</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                placeholder="3"
+                                                value={localDeliverySettings?.jewelsQuantityDelivery?.blockSize !== undefined ? localDeliverySettings.jewelsQuantityDelivery.blockSize : 3}
+                                                onChange={e => {
+                                                    const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                                                    setLocalDeliverySettings({
+                                                        ...localDeliverySettings,
+                                                        jewelsQuantityDelivery: {
+                                                            ...(localDeliverySettings?.jewelsQuantityDelivery || {}),
+                                                            blockSize: val
+                                                        }
+                                                    });
+                                                }}
+                                            />
+                                            <span className="text-sm">Positive whole number (e.g. 3). The first block is covered by the base charge.</span>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Additional delivery charge per jewellery block (₹) *</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                placeholder="30"
+                                                value={localDeliverySettings?.jewelsQuantityDelivery?.chargePerBlock !== undefined ? localDeliverySettings.jewelsQuantityDelivery.chargePerBlock : 30}
+                                                onChange={e => {
+                                                    const val = e.target.value === '' ? '' : parseFloat(e.target.value);
+                                                    setLocalDeliverySettings({
+                                                        ...localDeliverySettings,
+                                                        jewelsQuantityDelivery: {
+                                                            ...(localDeliverySettings?.jewelsQuantityDelivery || {}),
+                                                            chargePerBlock: val
+                                                        }
+                                                    });
+                                                }}
+                                            />
+                                            <span className="text-sm">Applies once for each additional block. A partially filled additional block incurs the full additional charge.</span>
                                         </div>
                                     </div>
                                 </div>

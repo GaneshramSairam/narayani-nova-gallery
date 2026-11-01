@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { ref, onValue, set, push, remove, update } from "firebase/database";
-import { INITIAL_DELIVERY_SETTINGS } from '../utils/deliveryUtils';
+import { INITIAL_DELIVERY_SETTINGS, calculateDeliveryCharge, validateDeliverySettings } from '../utils/deliveryUtils';
 import { resolveProductStore, resolveCategoryStore } from '../utils/storeConstants';
 import { DEFAULT_STORE_WATERMARKS } from '../utils/watermarkConstants';
 
@@ -172,21 +172,54 @@ export const AdminProvider = ({ children }) => {
 
     const addOrder = (order) => {
         const customId = `ORD-${Date.now()}`;
+        const shippingState = order.shippingState || order.customer?.state || '';
+        const orderItems = Array.isArray(order.items) ? order.items : [];
+        const orderSubtotal = Number(order.subtotal !== undefined ? order.subtotal : order.total) || 0;
+
+        // Authoritative delivery calculation
+        const deliveryResult = calculateDeliveryCharge(
+            shippingState,
+            orderSubtotal,
+            deliverySettings,
+            orderItems
+        );
+        const authoritativeDelCharge = deliveryResult ? deliveryResult.charge : (Number(order.deliveryCharge) || 0);
+        const authoritativeTotal = orderSubtotal + authoritativeDelCharge;
+
         const finalOrder = {
             ...order,
             id: customId,
             date: new Date().toISOString(),
             status: 'Pending',
-            subtotal: order.subtotal !== undefined ? order.subtotal : order.total,
-            deliveryCharge: order.deliveryCharge !== undefined ? order.deliveryCharge : 0,
-            shippingState: order.shippingState || ''
+            subtotal: orderSubtotal,
+            deliveryCharge: authoritativeDelCharge,
+            deliveryBreakdown: deliveryResult ? {
+                state: deliveryResult.state,
+                baseCharge: deliveryResult.baseCharge,
+                effectiveBaseCharge: deliveryResult.effectiveBaseCharge,
+                sareeCount: deliveryResult.sareeCount,
+                sareeBlockSize: deliveryResult.sareeBlockSize,
+                sareeAddlBlocks: deliveryResult.sareeAddlBlocks,
+                sareeSurcharge: deliveryResult.sareeSurcharge,
+                sareeSurchargeWaived: deliveryResult.sareeSurchargeWaived,
+                jewelsCount: deliveryResult.jewelsCount,
+                jewelsBlockSize: deliveryResult.jewelsBlockSize,
+                jewelsAddlBlocks: deliveryResult.jewelsAddlBlocks,
+                jewelsSurcharge: deliveryResult.jewelsSurcharge,
+                jewelsSurchargeWaived: deliveryResult.jewelsSurchargeWaived,
+                totalDeliveryCharge: deliveryResult.charge,
+                isFree: deliveryResult.isFree,
+                reason: deliveryResult.reason
+            } : null,
+            shippingState: shippingState,
+            total: authoritativeTotal
         };
 
         set(ref(db, `orders/${customId}`), finalOrder);
 
         logActivity(
             'CHECKOUT_SUBMITTED',
-            `Order placed for ₹${order.total}`,
+            `Order placed for ₹${authoritativeTotal}`,
             finalOrder.id,
             order.customer
         );
@@ -366,8 +399,17 @@ export const AdminProvider = ({ children }) => {
     }, []);
 
     const updateDeliverySettings = (newSettings) => {
+        if (!isAuthenticated) {
+            console.error('Unauthorized attempt to update delivery settings');
+            throw new Error('Unauthorized: Only logged in Super Admin can update delivery settings');
+        }
+        const validation = validateDeliverySettings(newSettings);
+        if (!validation.isValid) {
+            console.error('Invalid delivery settings:', validation.error);
+            throw new Error(validation.error);
+        }
         set(ref(db, 'deliverySettings'), newSettings);
-        logActivity('DELIVERY_SETTINGS_UPDATED', 'Updated state-wise delivery charges');
+        logActivity('DELIVERY_SETTINGS_UPDATED', 'Updated state-wise and quantity delivery settings');
     };
 
     // --- Store Watermark Settings State ---

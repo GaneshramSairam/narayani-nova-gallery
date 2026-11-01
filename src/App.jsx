@@ -246,7 +246,7 @@ function StoreLayout() {
 
         @media (min-width: 1024px) {
           .content-wrap {
-            padding-left: 240px;
+            padding-left: 270px;
           }
         }
 

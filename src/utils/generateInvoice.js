@@ -184,10 +184,9 @@ export const generateInvoice = async (order, invoiceSettings = {}) => {
     // Delivery Charge line (if recorded or present)
     if (order.deliveryCharge !== undefined) {
         const delCharge = Number(order.deliveryCharge) || 0;
-        const stateSuffix = order.shippingState ? ` (${order.shippingState})` : '';
         const delText = delCharge === 0 ? 'FREE' : `Rs. ${delCharge.toFixed(2)}`;
         doc.text(`Delivery Charges: ${delText}`, 185, yPos, { align: 'right' });
-        yPos += 8;
+        yPos += 6;
     }
 
     doc.setFont('times', 'bold');

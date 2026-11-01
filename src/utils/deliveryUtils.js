@@ -162,24 +162,251 @@ export const normalizeIndianState = (rawState) => {
 };
 
 /**
- * Calculates delivery charge based on state, subtotal, and Super Admin delivery settings.
- * Ensures that ₹0 is distinguished from unset.
- * Tamil Nadu or any other state rate is retrieved dynamically from configuration, never hardcoded.
+ * Validates delivery settings for Super Admin configuration.
+ * Enforces positive integer block sizes, non-negative charges, and checks required fields before enabling.
+ */
+export const validateDeliverySettings = (settings) => {
+    if (!settings || typeof settings !== 'object') {
+        return { isValid: false, error: 'Invalid delivery settings object.' };
+    }
+
+    // Default rate validation
+    if (settings.defaultRate !== undefined && settings.defaultRate !== null && settings.defaultRate !== '') {
+        const def = Number(settings.defaultRate);
+        if (isNaN(def) || def < 0) {
+            return { isValid: false, error: 'Default delivery rate must be a non-negative amount (₹0 or higher).' };
+        }
+    }
+
+    // Free delivery thresholds validation
+    if (settings.jewelsFreeDeliveryThreshold !== undefined && settings.jewelsFreeDeliveryThreshold !== null && settings.jewelsFreeDeliveryThreshold !== '') {
+        const jt = Number(settings.jewelsFreeDeliveryThreshold);
+        if (isNaN(jt) || jt < 0) {
+            return { isValid: false, error: 'Jewellery free delivery threshold must be a non-negative amount.' };
+        }
+    }
+    if (settings.drapesFreeDeliveryThreshold !== undefined && settings.drapesFreeDeliveryThreshold !== null && settings.drapesFreeDeliveryThreshold !== '') {
+        const dt = Number(settings.drapesFreeDeliveryThreshold);
+        if (isNaN(dt) || dt < 0) {
+            return { isValid: false, error: 'Saree free delivery threshold must be a non-negative amount.' };
+        }
+    }
+
+    // Signature Sarees Quantity Delivery Settings Validation
+    const sq = settings.sareeQuantityDelivery;
+    if (sq) {
+        if (sq.blockSize !== undefined && sq.blockSize !== null && sq.blockSize !== '') {
+            const bs = Number(sq.blockSize);
+            if (!Number.isInteger(bs) || bs <= 0) {
+                return {
+                    isValid: false,
+                    error: 'Sarees per delivery block must be a positive whole number (e.g. 5). Zero, negative, and fractional values are not permitted.'
+                };
+            }
+        } else if (sq.isEnabled) {
+            return {
+                isValid: false,
+                error: 'Sarees per delivery block must be configured before enabling quantity delivery.'
+            };
+        }
+
+        if (sq.chargePerBlock !== undefined && sq.chargePerBlock !== null && sq.chargePerBlock !== '') {
+            const cp = Number(sq.chargePerBlock);
+            if (isNaN(cp) || cp < 0) {
+                return {
+                    isValid: false,
+                    error: 'Additional delivery charge per saree block must be a non-negative amount (₹0 or greater).'
+                };
+            }
+        } else if (sq.isEnabled) {
+            return {
+                isValid: false,
+                error: 'Additional delivery charge per saree block must be configured before enabling quantity delivery.'
+            };
+        }
+
+        // When enabling, ensure both are valid
+        if (sq.isEnabled) {
+            const bs = Number(sq.blockSize);
+            const cp = Number(sq.chargePerBlock);
+            if (!Number.isInteger(bs) || bs <= 0 || isNaN(cp) || cp < 0) {
+                return {
+                    isValid: false,
+                    error: 'Valid sarees per block (> 0) and additional charge (>= 0) are required to enable Signature Sarees quantity delivery.'
+                };
+            }
+        }
+    }
+
+    // Narayani Gallery Quantity Delivery Settings Validation
+    const jq = settings.jewelsQuantityDelivery;
+    if (jq) {
+        if (jq.blockSize !== undefined && jq.blockSize !== null && jq.blockSize !== '') {
+            const bs = Number(jq.blockSize);
+            if (!Number.isInteger(bs) || bs <= 0) {
+                return {
+                    isValid: false,
+                    error: 'Jewellery units per delivery block must be a positive whole number (e.g. 3). Zero, negative, and fractional values are not permitted.'
+                };
+            }
+        } else if (jq.isEnabled) {
+            return {
+                isValid: false,
+                error: 'Jewellery units per delivery block must be configured before enabling quantity delivery.'
+            };
+        }
+
+        if (jq.chargePerBlock !== undefined && jq.chargePerBlock !== null && jq.chargePerBlock !== '') {
+            const cp = Number(jq.chargePerBlock);
+            if (isNaN(cp) || cp < 0) {
+                return {
+                    isValid: false,
+                    error: 'Additional delivery charge per jewellery block must be a non-negative amount (₹0 or greater).'
+                };
+            }
+        } else if (jq.isEnabled) {
+            return {
+                isValid: false,
+                error: 'Additional delivery charge per jewellery block must be configured before enabling quantity delivery.'
+            };
+        }
+
+        // When enabling, ensure both are valid
+        if (jq.isEnabled) {
+            const bs = Number(jq.blockSize);
+            const cp = Number(jq.chargePerBlock);
+            if (!Number.isInteger(bs) || bs <= 0 || isNaN(cp) || cp < 0) {
+                return {
+                    isValid: false,
+                    error: 'Valid jewellery units per block (> 0) and additional charge (>= 0) are required to enable Narayani Gallery quantity delivery.'
+                };
+            }
+        }
+    }
+
+    // State rates validation
+    if (settings.stateRates && typeof settings.stateRates === 'object') {
+        for (const [st, val] of Object.entries(settings.stateRates)) {
+            if (val !== undefined && val !== null && val !== '') {
+                const num = Number(val);
+                if (isNaN(num) || num < 0) {
+                    return { isValid: false, error: `Delivery charge for ${st} must be a non-negative number.` };
+                }
+            }
+        }
+    }
+
+    return { isValid: true };
+};
+
+/**
+ * Calculates delivery charge based on state base delivery, quantity-based surcharges, and thresholds.
+ * - Empty cart: ₹0.
+ * - Single base charge applied once per order (including mixed carts).
+ * - Saree quantity surcharge applies for blocks after the first.
+ * - Jewellery quantity surcharge applies for blocks after the first.
+ * - Preserves existing state rates, free delivery thresholds, and default fallback.
  */
 export const calculateDeliveryCharge = (stateName, subtotal = 0, deliverySettings = {}, cartItems = []) => {
     const isEnabled = deliverySettings?.isEnabled !== false;
     if (!isEnabled) {
         return {
             charge: 0,
+            baseCharge: 0,
+            effectiveBaseCharge: 0,
+            isBaseFree: true,
             isFree: true,
             reason: 'Delivery charges disabled',
             tipMessage: '',
             jewelsSubtotal: 0,
-            drapesSubtotal: 0
+            drapesSubtotal: 0,
+            sareeCount: 0,
+            sareeBlockSize: 0,
+            sareeAddlBlocks: 0,
+            sareeSurcharge: 0,
+            sareeSurchargeWaived: false,
+            sareeSurchargeEnabled: false,
+            jewelsCount: 0,
+            jewelsBlockSize: 0,
+            jewelsAddlBlocks: 0,
+            jewelsSurcharge: 0,
+            jewelsSurchargeWaived: false,
+            jewelsSurchargeEnabled: false
         };
     }
 
-    // Configurable thresholds with requested defaults: 5000 for jewels, 1000 for sarees
+    // Calculate product unit quantities and store-specific subtotals
+    let sareeCount = 0;
+    let jewelsCount = 0;
+    let sareeSubtotal = 0;
+    let jewelsSubtotal = 0;
+
+    if (Array.isArray(cartItems) && cartItems.length > 0) {
+        cartItems.forEach(item => {
+            const price = Number(item.price) || 0;
+            const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+            const line = price * qty;
+            const store = item.store || resolveProductStore(item);
+            if (store === 'drapes') {
+                sareeCount += qty;
+                sareeSubtotal += line;
+            } else {
+                jewelsCount += qty;
+                jewelsSubtotal += line;
+            }
+        });
+    } else {
+        jewelsSubtotal = Number(subtotal) || 0;
+    }
+
+    const totalUnits = sareeCount + jewelsCount;
+    const hasSarees = sareeCount > 0 || sareeSubtotal > 0;
+    const hasJewels = jewelsCount > 0 || jewelsSubtotal > 0;
+
+    // Empty cart incurs no delivery charges
+    if ((!cartItems || cartItems.length === 0 || totalUnits === 0) && Number(subtotal) === 0) {
+        return {
+            charge: 0,
+            baseCharge: 0,
+            effectiveBaseCharge: 0,
+            isBaseFree: true,
+            isFree: true,
+            reason: 'Empty cart',
+            tipMessage: '',
+            state: stateName || '',
+            jewelsSubtotal: 0,
+            drapesSubtotal: 0,
+            sareeCount: 0,
+            sareeBlockSize: 0,
+            sareeAddlBlocks: 0,
+            sareeSurcharge: 0,
+            sareeSurchargeWaived: false,
+            sareeSurchargeEnabled: false,
+            jewelsCount: 0,
+            jewelsBlockSize: 0,
+            jewelsAddlBlocks: 0,
+            jewelsSurcharge: 0,
+            jewelsSurchargeWaived: false,
+            jewelsSurchargeEnabled: false
+        };
+    }
+
+    // Determine state base delivery charge
+    const normalizedState = normalizeIndianState(stateName);
+    const rates = deliverySettings?.stateRates || {};
+    const defaultRate = typeof deliverySettings?.defaultRate === 'number'
+        ? deliverySettings.defaultRate
+        : (parseFloat(deliverySettings?.defaultRate) || 100);
+
+    let rawBaseCharge = Math.max(0, defaultRate);
+    let isDefaultState = true;
+
+    if (rates[normalizedState] !== undefined && rates[normalizedState] !== null && rates[normalizedState] !== '') {
+        rawBaseCharge = Math.max(0, parseFloat(rates[normalizedState]) || 0);
+        isDefaultState = false;
+    }
+
+    // Configurable thresholds
     const jewelsThreshold = deliverySettings?.jewelsFreeDeliveryThreshold !== undefined
         ? Number(deliverySettings.jewelsFreeDeliveryThreshold)
         : 5000;
@@ -188,133 +415,174 @@ export const calculateDeliveryCharge = (stateName, subtotal = 0, deliverySetting
         : 10000;
     const globalThreshold = parseFloat(deliverySettings?.freeDeliveryThreshold) || 0;
 
-    // Calculate store-specific subtotals from cart items
-    let jewelsSubtotal = 0;
-    let drapesSubtotal = 0;
+    // Surcharge configuration
+    const sq = deliverySettings?.sareeQuantityDelivery || {};
+    const sareeSurchargeEnabled = Boolean(sq.isEnabled);
+    const sareeBlockSize = Math.max(1, parseInt(sq.blockSize, 10) || 5);
+    const sareeChargePerBlock = Math.max(0, Number(sq.chargePerBlock) || 0);
 
-    if (Array.isArray(cartItems) && cartItems.length > 0) {
-        cartItems.forEach(item => {
-            const price = Number(item.price) || 0;
-            const qty = Number(item.quantity) || 1;
-            const line = price * qty;
-            const store = item.store || resolveProductStore(item);
-            if (store === 'drapes') {
-                drapesSubtotal += line;
-            } else {
-                jewelsSubtotal += line;
-            }
-        });
-    } else {
-        // Fallback if cartItems not provided
-        jewelsSubtotal = subtotal;
+    let sareeAddlBlocks = 0;
+    let rawSareeSurcharge = 0;
+    if (sareeSurchargeEnabled && sareeCount > sareeBlockSize) {
+        sareeAddlBlocks = Math.ceil((sareeCount - sareeBlockSize) / sareeBlockSize);
+        rawSareeSurcharge = sareeAddlBlocks * sareeChargePerBlock;
     }
 
-    const hasJewels = jewelsSubtotal > 0;
-    const hasDrapes = drapesSubtotal > 0;
+    const jq = deliverySettings?.jewelsQuantityDelivery || {};
+    const jewelsSurchargeEnabled = Boolean(jq.isEnabled);
+    const jewelsBlockSize = Math.max(1, parseInt(jq.blockSize, 10) || 3);
+    const jewelsChargePerBlock = Math.max(0, Number(jq.chargePerBlock) || 0);
 
-    // Check free delivery qualification:
-    // 1. Sarees >= 1000
-    // 2. Jewels >= 5000
-    // 3. Global threshold if configured
-    let isFree = false;
-    let reason = '';
+    let jewelsAddlBlocks = 0;
+    let rawJewelsSurcharge = 0;
+    if (jewelsSurchargeEnabled && jewelsCount > jewelsBlockSize) {
+        jewelsAddlBlocks = Math.ceil((jewelsCount - jewelsBlockSize) / jewelsBlockSize);
+        rawJewelsSurcharge = jewelsAddlBlocks * jewelsChargePerBlock;
+    }
+
+    // Evaluate qualification independently for each store
+    const sareeQualifies = hasSarees && drapesThreshold > 0 && sareeSubtotal >= drapesThreshold;
+    const jewelsQualifies = hasJewels && jewelsThreshold > 0 && jewelsSubtotal >= jewelsThreshold;
+    const globalQualifies = globalThreshold > 0 && Number(subtotal) >= globalThreshold;
+
+    let effectiveBaseCharge = rawBaseCharge;
+    let sareeSurcharge = rawSareeSurcharge;
+    let jewelsSurcharge = rawJewelsSurcharge;
+    let sareeSurchargeWaived = false;
+    let jewelsSurchargeWaived = false;
+    let isBaseFree = false;
+    let freeReason = '';
     let tipMessage = '';
 
-    if (globalThreshold > 0 && subtotal >= globalThreshold) {
-        isFree = true;
-        reason = `Free delivery on orders above ₹${globalThreshold}`;
-    } else if (hasDrapes && !hasJewels) {
-        // Cart with ONLY Sarees
-        if (drapesThreshold > 0 && drapesSubtotal >= drapesThreshold) {
-            isFree = true;
-            reason = `Free delivery unlocked on Sarees above ₹${drapesThreshold.toLocaleString('en-IN')}!`;
-        } else if (drapesThreshold > 0) {
-            const diff = drapesThreshold - drapesSubtotal;
-            tipMessage = `Add ₹${diff.toFixed(2)} more in Sarees to unlock Free Delivery!`;
-        }
-    } else if (hasJewels && !hasDrapes) {
-        // Cart with ONLY Jewellery
-        if (jewelsThreshold > 0 && jewelsSubtotal >= jewelsThreshold) {
-            isFree = true;
-            reason = `Free delivery unlocked on Jewellery above ₹${jewelsThreshold.toLocaleString('en-IN')}!`;
-        } else if (jewelsThreshold > 0) {
-            const diff = jewelsThreshold - jewelsSubtotal;
-            tipMessage = `Add ₹${diff.toFixed(2)} more in Jewellery to unlock Free Delivery!`;
-        }
-    } else if (hasJewels && hasDrapes) {
-        // Mixed Cart with BOTH Jewellery and Sarees
-        const drapesQualifies = drapesThreshold > 0 && drapesSubtotal >= drapesThreshold;
-        const jewelsQualifies = jewelsThreshold > 0 && jewelsSubtotal >= jewelsThreshold;
-
-        if (drapesQualifies || jewelsQualifies) {
-            isFree = true;
-            if (drapesQualifies && jewelsQualifies) {
-                reason = `Free delivery unlocked (Jewellery above ₹${jewelsThreshold.toLocaleString('en-IN')} & Sarees above ₹${drapesThreshold.toLocaleString('en-IN')})!`;
-            } else if (drapesQualifies) {
-                reason = `Free delivery unlocked (Sarees portion above ₹${drapesThreshold.toLocaleString('en-IN')})!`;
-            } else {
-                reason = `Free delivery unlocked (Jewellery portion above ₹${jewelsThreshold.toLocaleString('en-IN')})!`;
-            }
+    if (globalQualifies) {
+        // Global threshold met: everything free
+        effectiveBaseCharge = 0;
+        sareeSurcharge = 0;
+        jewelsSurcharge = 0;
+        sareeSurchargeWaived = rawSareeSurcharge > 0;
+        jewelsSurchargeWaived = rawJewelsSurcharge > 0;
+        isBaseFree = true;
+        freeReason = `Free delivery on orders for ₹${globalThreshold.toLocaleString('en-IN')} and above!`;
+    } else if (hasSarees && !hasJewels) {
+        // Single-store: Saree-only order
+        if (sareeQualifies) {
+            effectiveBaseCharge = 0;
+            sareeSurcharge = 0;
+            sareeSurchargeWaived = rawSareeSurcharge > 0;
+            isBaseFree = true;
+            freeReason = `Free delivery unlocked on Signature Sarees for ₹${drapesThreshold.toLocaleString('en-IN')} and above!`;
         } else {
-            const sareeDiff = drapesThreshold - drapesSubtotal;
+            effectiveBaseCharge = rawBaseCharge;
+            sareeSurcharge = rawSareeSurcharge;
+            if (drapesThreshold > 0) {
+                const diff = drapesThreshold - sareeSubtotal;
+                tipMessage = `Add ₹${diff.toFixed(2)} more in Signature Sarees to unlock Free Delivery!`;
+            }
+        }
+    } else if (hasJewels && !hasSarees) {
+        // Single-store: Jewellery-only order
+        if (jewelsQualifies) {
+            effectiveBaseCharge = 0;
+            jewelsSurcharge = 0;
+            jewelsSurchargeWaived = rawJewelsSurcharge > 0;
+            isBaseFree = true;
+            freeReason = `Free delivery unlocked on Narayani Gallery for ₹${jewelsThreshold.toLocaleString('en-IN')} and above!`;
+        } else {
+            effectiveBaseCharge = rawBaseCharge;
+            jewelsSurcharge = rawJewelsSurcharge;
+            if (jewelsThreshold > 0) {
+                const diff = jewelsThreshold - jewelsSubtotal;
+                tipMessage = `Add ₹${diff.toFixed(2)} more in Narayani Gallery to unlock Free Delivery!`;
+            }
+        }
+    } else if (hasSarees && hasJewels) {
+        // Mixed-store order: evaluate each store independently
+        if (sareeQualifies && jewelsQualifies) {
+            effectiveBaseCharge = 0;
+            sareeSurcharge = 0;
+            jewelsSurcharge = 0;
+            sareeSurchargeWaived = rawSareeSurcharge > 0;
+            jewelsSurchargeWaived = rawJewelsSurcharge > 0;
+            isBaseFree = true;
+            freeReason = `Free delivery unlocked on entire order (Narayani Gallery ₹${jewelsThreshold.toLocaleString('en-IN')} and above & Signature Sarees ₹${drapesThreshold.toLocaleString('en-IN')} and above)!`;
+        } else if (sareeQualifies && !jewelsQualifies) {
+            // Only Sarees qualify: waive saree surcharge, retain base charge once + jewels surcharge
+            effectiveBaseCharge = rawBaseCharge;
+            sareeSurcharge = 0;
+            sareeSurchargeWaived = rawSareeSurcharge > 0;
+            jewelsSurcharge = rawJewelsSurcharge;
+            isBaseFree = false;
+            freeReason = `Signature Sarees delivery surcharge waived (₹${drapesThreshold.toLocaleString('en-IN')} and above). Base delivery applies.`;
             const jewelDiff = jewelsThreshold - jewelsSubtotal;
-            tipMessage = `Add ₹${sareeDiff.toFixed(2)} in Sarees OR ₹${jewelDiff.toFixed(2)} in Jewels to unlock Free Delivery!`;
+            tipMessage = `Add ₹${jewelDiff.toFixed(2)} more in Narayani Gallery to unlock Free Delivery on entire order!`;
+        } else if (!sareeQualifies && jewelsQualifies) {
+            // Only Jewellery qualifies: waive jewels surcharge, retain base charge once + saree surcharge
+            effectiveBaseCharge = rawBaseCharge;
+            jewelsSurcharge = 0;
+            jewelsSurchargeWaived = rawJewelsSurcharge > 0;
+            sareeSurcharge = rawSareeSurcharge;
+            isBaseFree = false;
+            freeReason = `Narayani Gallery delivery surcharge waived (₹${jewelsThreshold.toLocaleString('en-IN')} and above). Base delivery applies.`;
+            const sareeDiff = drapesThreshold - sareeSubtotal;
+            tipMessage = `Add ₹${sareeDiff.toFixed(2)} more in Signature Sarees to unlock Free Delivery on entire order!`;
+        } else {
+            // Neither qualifies: retain base charge once + both surcharges
+            effectiveBaseCharge = rawBaseCharge;
+            sareeSurcharge = rawSareeSurcharge;
+            jewelsSurcharge = rawJewelsSurcharge;
+            isBaseFree = false;
+            const sareeDiff = drapesThreshold - sareeSubtotal;
+            const jewelDiff = jewelsThreshold - jewelsSubtotal;
+            tipMessage = `Add ₹${sareeDiff.toFixed(2)} in Signature Sarees OR ₹${jewelDiff.toFixed(2)} in Narayani Gallery to unlock Free Delivery!`;
         }
     }
 
-    if (isFree) {
-        return {
-            charge: 0,
-            isFree: true,
-            reason,
-            tipMessage: '',
-            jewelsSubtotal,
-            drapesSubtotal,
-            jewelsThreshold,
-            drapesThreshold
-        };
-    }
+    const totalDeliveryCharge = effectiveBaseCharge + sareeSurcharge + jewelsSurcharge;
 
-    // If not free, calculate configured state rate
-    const normalizedState = normalizeIndianState(stateName);
-    const rates = deliverySettings?.stateRates || {};
-    const defaultRate = typeof deliverySettings?.defaultRate === 'number' 
-        ? deliverySettings.defaultRate 
-        : (parseFloat(deliverySettings?.defaultRate) || 100);
-
-    // If the state rate is explicitly configured (including explicitly ₹0)
-    if (rates[normalizedState] !== undefined && rates[normalizedState] !== null && rates[normalizedState] !== '') {
-        const configuredRate = Math.max(0, parseFloat(rates[normalizedState]) || 0);
-        return {
-            charge: configuredRate,
-            isFree: configuredRate === 0,
-            state: normalizedState,
-            isDefault: false,
-            tipMessage,
-            jewelsSubtotal,
-            drapesSubtotal,
-            jewelsThreshold,
-            drapesThreshold
-        };
-    }
-
-    // Fall back to the explicitly configured default rate
     return {
-        charge: Math.max(0, defaultRate),
-        isFree: defaultRate === 0,
+        charge: totalDeliveryCharge,
+        baseCharge: rawBaseCharge,
+        effectiveBaseCharge,
+        isBaseFree,
+        isFree: totalDeliveryCharge === 0,
         state: normalizedState || 'Unspecified',
-        isDefault: true,
+        isDefaultState,
+        reason: freeReason,
         tipMessage,
+
+        // Saree quantity details
+        sareeCount,
+        sareeBlockSize: sareeSurchargeEnabled ? sareeBlockSize : 0,
+        sareeAddlBlocks,
+        sareeSurcharge,
+        rawSareeSurcharge,
+        sareeSurchargeWaived,
+        sareeSurchargeEnabled,
+        sareeChargePerBlock,
+        sareeQualifies,
+
+        // Jewellery quantity details
+        jewelsCount,
+        jewelsBlockSize: jewelsSurchargeEnabled ? jewelsBlockSize : 0,
+        jewelsAddlBlocks,
+        jewelsSurcharge,
+        rawJewelsSurcharge,
+        jewelsSurchargeWaived,
+        jewelsSurchargeEnabled,
+        jewelsChargePerBlock,
+        jewelsQualifies,
+
+        // Subtotals & Thresholds
         jewelsSubtotal,
-        drapesSubtotal,
+        drapesSubtotal: sareeSubtotal,
         jewelsThreshold,
         drapesThreshold
     };
 };
 
 /**
- * Default initial state rates if super admin hasn't configured them yet.
- * Can be customized by super admin at any time.
+ * Default initial state rates and delivery configuration.
+ * Independent quantity delivery settings for sarees and jewellery are disabled by default.
  */
 export const INITIAL_DELIVERY_SETTINGS = {
     isEnabled: true,
@@ -322,6 +590,18 @@ export const INITIAL_DELIVERY_SETTINGS = {
     freeDeliveryThreshold: 0, // Global threshold (0 = disabled)
     jewelsFreeDeliveryThreshold: 5000, // Free delivery for Jewellery above ₹5,000
     drapesFreeDeliveryThreshold: 10000, // Free delivery for Sarees above ₹10,000
+    // Signature Sarees Quantity-based Delivery (independent, disabled initially)
+    sareeQuantityDelivery: {
+        isEnabled: false,
+        blockSize: 5,
+        chargePerBlock: 50
+    },
+    // Narayani Gallery Quantity-based Delivery (independent, disabled initially)
+    jewelsQuantityDelivery: {
+        isEnabled: false,
+        blockSize: 3,
+        chargePerBlock: 30
+    },
     stateRates: {
         "Tamil Nadu": 60,
         "Puducherry": 60,

@@ -73,7 +73,7 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                     left: 1.5rem;
                     top: 100px;
                     z-index: 900;
-                    width: 220px;
+                    width: 240px;
                 }
 
                 .store-switcher-container {
@@ -82,7 +82,7 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                     -webkit-backdrop-filter: blur(12px);
                     border: 1.5px solid rgba(212, 175, 55, 0.35);
                     border-radius: 16px;
-                    padding: 1rem 0.8rem;
+                    padding: 1rem 0.85rem;
                     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.15);
                 }
 
@@ -107,14 +107,14 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                 .store-switcher-options {
                     display: flex;
                     flex-direction: column;
-                    gap: 0.6rem;
+                    gap: 0.65rem;
                 }
 
                 .store-card {
                     display: flex;
                     align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.75rem 0.85rem;
+                    gap: 0.8rem;
+                    padding: 0.8rem 0.85rem;
                     border-radius: 12px;
                     background: rgba(61, 8, 10, 0.4);
                     border: 1.5px solid transparent;
@@ -124,7 +124,7 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                     text-align: left;
                     width: 100%;
                     position: relative;
-                    overflow: hidden;
+                    min-height: 60px;
                 }
 
                 .store-card:hover {
@@ -189,17 +189,19 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                     flex-direction: column;
                     flex: 1;
                     min-width: 0;
+                    justify-content: center;
                 }
 
                 .store-title {
                     font-family: var(--font-heading, serif);
                     font-size: 0.95rem;
                     font-weight: 700;
-                    letter-spacing: 0.04em;
-                    line-height: 1.2;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
+                    letter-spacing: 0.02em;
+                    line-height: 1.25;
+                    white-space: normal;
+                    word-break: normal;
+                    overflow-wrap: break-word;
+                    text-overflow: clip;
                 }
 
                 .store-badge {
@@ -220,22 +222,23 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                     color: var(--color-gold-highlight, #D4AF37);
                     font-size: 0.75rem;
                     text-shadow: 0 0 6px rgba(212, 175, 55, 0.8);
+                    flex-shrink: 0;
                 }
 
                 /* Responsive Adaptation for Tablets and Mobile */
-                @media (max-width: 1100px) {
+                @media (max-width: 1023px) {
                     .store-switcher-nav {
                         position: relative;
                         left: auto;
                         top: auto;
                         width: 100%;
-                        max-width: 480px;
+                        max-width: 500px;
                         margin: 1rem auto 0 auto;
-                        padding: 0 1rem;
+                        padding: 0 0.75rem;
                     }
 
                     .store-switcher-container {
-                        padding: 0.5rem 0.6rem;
+                        padding: 0.45rem 0.6rem;
                         border-radius: 999px;
                         background: rgba(42, 5, 7, 0.9);
                     }
@@ -250,9 +253,11 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                     }
 
                     .store-card {
-                        padding: 0.5rem 0.8rem;
+                        padding: 0.5rem 0.85rem;
                         border-radius: 999px;
                         justify-content: center;
+                        min-height: unset;
+                        flex: 1;
                     }
 
                     .store-card:hover {
@@ -274,8 +279,14 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
                         height: 16px;
                     }
 
+                    .store-card-text {
+                        flex: unset;
+                        min-width: unset;
+                    }
+
                     .store-title {
-                        font-size: 0.85rem;
+                        font-size: 0.86rem;
+                        white-space: nowrap;
                     }
 
                     .store-badge {
@@ -284,6 +295,38 @@ const StoreSwitcher = ({ activeStore, onSelectStore }) => {
 
                     .store-active-check {
                         display: none;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .store-switcher-nav {
+                        padding: 0 0.5rem;
+                    }
+                    .store-card {
+                        padding: 0.45rem 0.65rem;
+                        gap: 0.4rem;
+                    }
+                    .store-card-icon-box {
+                        width: 24px;
+                        height: 24px;
+                    }
+                    .store-icon {
+                        width: 14px;
+                        height: 14px;
+                    }
+                    .store-title {
+                        font-size: 0.78rem;
+                        letter-spacing: 0.01em;
+                    }
+                }
+
+                @media (max-width: 360px) {
+                    .store-card {
+                        padding: 0.4rem 0.45rem;
+                        gap: 0.3rem;
+                    }
+                    .store-title {
+                        font-size: 0.72rem;
                     }
                 }
             `}</style>

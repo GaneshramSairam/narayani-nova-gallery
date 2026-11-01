@@ -22,7 +22,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
   // Calculate delivery charge dynamically from Super Admin deliverySettings
   const deliveryInfo = useMemo(() => {
     return calculateDeliveryCharge(formData.state, cartTotal, deliverySettings, cartItems);
-  }, [formData.state, cartTotal, deliverySettings]);
+  }, [formData.state, cartTotal, deliverySettings, cartItems]);
 
   const deliveryCharge = deliveryInfo.charge;
   const grandTotal = cartTotal + deliveryCharge;
@@ -99,7 +99,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
         )}
         {!deliveryInfo.isFree && (
           <div className="delivery-notice-sub">
-            🚚 Free delivery on orders above ₹5,000 for Narayani Gallery & above ₹10,000 for Signature Sarees.
+            🚚 Free delivery on orders ₹5,000 and above for Narayani Gallery & ₹10,000 and above for Signature Sarees.
           </div>
         )}
         <div className="summary-divider"></div>
@@ -196,7 +196,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
                 </option>
               ))}
             </select>
-            <span className="form-hint">Delivery charges applicable. Free delivery on orders above ₹5,000 for Narayani Gallery and above ₹10,000 for Signature Sarees.</span>
+            <span className="form-hint">Delivery charges applicable. Free delivery on orders ₹5,000 and above for Narayani Gallery and ₹10,000 and above for Signature Sarees.</span>
           </div>
 
           <button type="submit" className="pay-btn">
@@ -315,7 +315,7 @@ const CheckoutForm = ({ onCancel, onSuccess }) => {
           border-radius: 4px;
         }
 
-        .delivery-tip-banner {
+.delivery-tip-banner {
           font-size: 0.8rem;
           color: #f8e79c;
           background: rgba(212, 175, 55, 0.15);
